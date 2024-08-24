@@ -39,7 +39,7 @@ impl FleetBundle {
     }
 }
 
-use crate::camera_control::{CameraSettings,CameraMode};
+use crate::camera::{CameraSettings,CameraMode};
 
 pub fn fleet_preview_gizmos(
     nav_query : Query<(&mut NavPosition, &Fleet)>,

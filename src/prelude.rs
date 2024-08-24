@@ -3,7 +3,7 @@ pub use crate::simulation::data::{
     Empire,
     StarClaim,
     colony::{Economy,Colony},
-    population::{Population,PopulationNumber}
+    population::Population
 };
 
 pub use crate::galaxy::{

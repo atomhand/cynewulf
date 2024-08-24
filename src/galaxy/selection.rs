@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::camera_control::{CameraSettings, CameraMode};
+use crate::camera::{CameraSettings, CameraMode};
 use super::Star;
 
 

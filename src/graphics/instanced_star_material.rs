@@ -31,7 +31,7 @@ impl Plugin for StarMaterialPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(
             (ExtractComponentPlugin::<InstanceMaterialData>::default(),
-            ExtractComponentPlugin::<crate::camera_control::CameraMain>::default())        
+            ExtractComponentPlugin::<crate::camera::CameraMain>::default())        
         );
         app.sub_app_mut(RenderApp)
             .add_render_command::<Transparent3d, DrawStar>()
@@ -253,7 +253,7 @@ fn prepare_star_uniform_bind_groups(
     queue : Res<RenderQueue>,
     star_pipeline : Res<StarPipeline>,
     mut uniforms_data : ResMut<StarUniformsData>,
-    cam_query: Query<&crate::camera_control::CameraMain>,
+    cam_query: Query<&crate::camera::CameraMain>,
 ) {
     let cam = cam_query.get_single().expect("couldn't find camera!");
 

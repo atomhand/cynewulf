@@ -22,6 +22,6 @@ impl Plugin for InterfacePlugin {
             .add_systems(Update, (
                 time_control::time_control_system,
                 star_label::draw_star_labels,
-                star_label::add_star_labels).after(crate::camera_control::camera_control_system));
+                star_label::add_star_labels).after(crate::camera::camera_control_system));
     }
 }

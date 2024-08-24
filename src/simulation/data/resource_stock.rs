@@ -1,10 +1,9 @@
-use crate::util::number::IFraction;
 use crate::prelude::*;
 
 pub struct ResourceStock {
     pub stock : i64,
-    pub stock_frac : i64, // 3650ths of a stock
-    pub change_per_decade : i64,
+    stock_frac : i64, // 3650ths of a stock. This could use IFraction but there isn't really any need to.
+    change_per_decade : i64,
 }
 
 impl Default for ResourceStock {

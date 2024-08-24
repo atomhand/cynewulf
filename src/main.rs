@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use bevy_mod_picking;
 
-mod camera_control;
+mod camera;
 mod galaxy;
 mod graphics;
 mod simulation;
@@ -25,7 +25,7 @@ fn main() {
             graphics::GraphicsPlugin,
             simulation::SimulationPlugin,
             interface::InterfacePlugin,
-            camera_control::CameraPlugin,
+            camera::CameraPlugin,
             bevy_mod_picking::DefaultPickingPlugins
         ))
         .run();

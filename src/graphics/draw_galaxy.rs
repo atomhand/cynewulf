@@ -1,7 +1,7 @@
 
 use bevy::prelude::*;
 use crate::prelude::*;
-use crate::camera_control::{CameraSettings,CameraMode,camera_control_system};
+use crate::camera::{CameraSettings,CameraMode,camera_control_system};
 
 #[derive(Component)]
 struct GalaxyViewComponent
@@ -82,7 +82,7 @@ impl Plugin for DrawGalaxyPlugin {
 }
 
 fn update_stars_zoom(
-    cam_query: Query<&crate::camera_control::CameraMain>,
+    cam_query: Query<&crate::camera::CameraMain>,
     star_mat_handles : Query<&Handle<StarBillboardMaterial>,With<GalaxyViewComponent>>,
     mut mats : ResMut<Assets<StarBillboardMaterial>>,
  ) {

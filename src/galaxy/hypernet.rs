@@ -207,7 +207,5 @@ impl Hypernet {
                 }
             }
         }
-
-        println!("removed {} links (target was {}).", i, number);
     }
 }

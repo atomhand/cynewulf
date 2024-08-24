@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy_mod_picking::backend::prelude::*;
 use bevy::render::view::RenderLayers;
 
-use crate::camera_control::{CameraSettings, CameraMode};
+use crate::camera::{CameraSettings, CameraMode};
 
 use super::{Star,selection::*};
 
