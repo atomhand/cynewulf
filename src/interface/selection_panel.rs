@@ -26,8 +26,7 @@ pub struct SelectionPanelPlugin;
 impl Plugin for SelectionPanelPlugin {
     fn build(&self, app : &mut App) {
         app.add_systems(Startup,setup_widget)
-        .add_systems(Update,(update_widget_system.after(widget_interact_system),widget_interact_system.after(crate::galaxy::selection::get_hovered)),
-            );
+        .add_systems(Update,(widget_interact_system,update_widget_system).chain());
     }
 }
 

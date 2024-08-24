@@ -2,18 +2,18 @@ use bevy::prelude::*;
 use crate::galaxy::Hypernet;
 use crate::prelude::*;
 
+#[derive(Component)]
+pub struct NavPosition {
+    pub root_system : u32,
+    pub offset : NavOffset
+}
+
 #[derive(Clone)]
 pub struct HyperlaneLocalPos {
     //star_a : u32, // edge id in the hypernet
     star_b : u32,
     progress : i32,
     distance : i32
-}
-
-#[derive(Component)]
-pub struct NavPosition {
-    pub root_system : u32,
-    pub offset : NavOffset
 }
 
 #[derive(Clone)]
@@ -91,9 +91,12 @@ pub enum Plan {
     Colonise(Entity) // Planet
 }
 
+// Finds the entry/exit point in the system of "star" for the hyperlane connecting to "other"
+// Maybe it would be neater + better for this function to be a member of Hypernet
+// In order do accomplish that cleanly, the necessary information (star system radius) should be stored in the hypernet node weights.
+// -- Which would be fine, since it's almost certainly going to be a fixed value for each star.
 fn hyperlane_transit_point(star : &Star, other : Vec3) -> Vec3 {
     let dir = (other.as_dvec3() - star.pos.as_dvec3()).normalize();
-
     (dir * star.system_radius_actual() as f64).as_vec3()
 }
 use crate::simulation::fleet::Fleet;
@@ -408,145 +411,3 @@ pub fn navigation_update_nav_system(
         }
     }
 }
-
-/*
-pub fn navigation_update_nav_system_old(
-    mut nav_query : Query<(&mut NavPosition, &mut Navigator)>,
-    system_query : Query<&Star,Without<Navigator>>,
-    hypernet : Res<Hypernet>
-) {
-    for (mut nav_pos, mut nav) in nav_query.iter_mut() {
-        // 1. If we are in a hyperlane, update travel progress
-        // -- If we finished travelling, set location to the new system and mark that we're idle
-        // 2. If there is an active Action,
-        // -- check whether it is completed, or invalid. (In Which case trigger completion actions and potentially mark Idle - or eg. Jumping if the action automatically triggers a new one)
-        // -- Execute it (eg. if it's a movement action, move...)
-        // 3. If there is not an active Action, try to grab the next action. (This could come from the action queue, or from an automation policy)
-        // -- When an action is grabbed from the queue, the behaviour depends on the action
-        // - An action like Jump is consumed and attempts to execute immediately
-        // - An action like Move is consumed and creates an analogue action on the execution slot
-        // - An action like "Reach Destination" pushes new Move&Jump actions to the front of the queue, and isn't actually removed (unless the destination has been reached..)
-        *nav_pos = match nav_pos.offset {
-            NavOffset::Hyperlane(HyperlaneLocalPos {
-                //star_a,
-                star_b,
-                progress,
-                distance
-            }) => {
-                let star_a_node = hypernet.graph.node_weight(nav_pos.root_system.into()).unwrap();
-                let star_a = system_query.get(star_a_node.star).unwrap();
-                // Do nothing
-                let star_b_node = hypernet.graph.node_weight(star_b.into()).unwrap();
-                let star_b_ref = system_query.get(star_b_node.star).unwrap();
-
-                let progress =progress + nav.hyperspeed;
-                if progress >= distance { // Finished Jumping
-                    let hyperspace_exit_point = hyperlane_transit_point(star_b_ref, star_a.pos);
-
-                    NavPosition {
-                        root_system : star_b,
-                        idle : true,
-                        offset : NavOffset::Star(hyperspace_exit_point)
-                    }
-                } else {
-                    NavPosition {
-                        root_system : nav_pos.root_system,
-                        idle : false,
-                        offset : NavOffset::Hyperlane(HyperlaneLocalPos {
-                            //star_a,
-                            star_b,
-                            progress,
-                            distance
-                        })
-                    }
-                }
-            },
-            NavOffset::Star(offset) => {
-                if let Some(dest) = nav.pathing_state.dest() {
-                    let dir = (dest - offset).normalize_or_zero();
-                    let dist = dest.distance(offset);
-                    let speed = nav.speed.min(dist);
-
-                    NavPosition {
-                        root_system : nav_pos.root_system,
-                        idle : dist <= speed,
-                        offset : NavOffset::Star(offset + dir * speed)
-                    }
-                } else {
-                    NavPosition {
-                        root_system : nav_pos.root_system,
-                        idle : true,
-                        offset : NavOffset::Star(offset)
-                    }
-                }
-            }
-        };
-
-        if nav_pos.idle {
-            nav.pathing_state = match nav.pathing_state {
-                PathingState::MovingToJump((_transit_point,dest_star)) => {
-                    // JUMP
-                    let edge = hypernet.graph.edge_weight(hypernet.graph.find_edge(nav_pos.root_system.into(),dest_star.into()).unwrap()).unwrap();
-                    nav_pos.offset = NavOffset::Hyperlane(HyperlaneLocalPos {
-                        star_b : dest_star,
-                        progress : 0,
-                        distance : edge.length
-                    });
-                    PathingState::Jumping
-                }
-                _ => {
-                    // TEMP FOR TESTING
-                    if nav.destination.is_none() {
-                        nav.destination = get_random_destination(&hypernet);
-                    }
-
-
-                    if let Some(destination) = &nav.destination {
-                        // if we are in the system of the destination...
-                        if nav_pos.root_system == destination.root_system {
-                            if let NavOffset::Star(offset) = destination.offset {
-                                if let NavOffset::Star(pos_offset) = nav_pos.offset {
-                                    // if we reached the destination, clear our destination and pathing state
-                                    if offset.distance(pos_offset) < nav.speed {
-                                        nav.destination = None;
-                                        PathingState::Idle
-                                    } else {
-                                        PathingState::Moving(offset)
-                                    }
-                                } else { // error state. ideally would statically guarantee never reaching this point
-                                    println!("navigation error state, navigation is idle but position is in a hyperlane...");
-                                    nav.destination = None;
-                                    PathingState::Idle
-                                }
-                            } else { // error state. ideally would statically guarantee never reaching this point
-                                println!("navigation error state, destination offset is in a hyperlane...");
-                                nav.destination = None;
-                                PathingState::Idle
-                            }
-                        } else {
-                            // Request the pathfinder to give us the next system on our route
-                            if let Some(path) = hypernet.find_path(nav_pos.root_system, destination.root_system) {
-                                //let star_a_id = path[0];
-                                assert!(nav_pos.root_system == path[0], "path[0] doesn't match path origin!");
-                                
-                                let star_a_node = hypernet.graph.node_weight(nav_pos.root_system.into()).unwrap();
-                                let star_a = system_query.get(star_a_node.star).unwrap();
-                                let star_b_id = path[1];
-                                let star_b_pos = hypernet.graph.node_weight(star_b_id.into()).unwrap().pos;
-
-                                PathingState::MovingToJump((hyperlane_transit_point(star_a, star_b_pos),path[1]))
-                            } else {
-                                nav.destination = None;
-                                PathingState::Idle
-                            }
-                        }
-
-                    } else {
-                        PathingState::Idle
-                    }
-                }
-            }
-        }
-    }
-}
-*/

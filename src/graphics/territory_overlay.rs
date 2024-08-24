@@ -88,7 +88,6 @@ impl Plugin for OverlaysPlugin {
 
 fn update_overlays(
     query : Query<(&StarGfxTag,&StarClaim),(With<Star>,Changed<StarClaim>)>,
-    //query : Query<(&StarGfxTag,&StarClaim),With<Star>>,
     empire_query : Query<&Empire>,
     mut images : ResMut<Assets<Image>>,
     mut mats : ResMut<Assets<TerritoryOverlaysMaterial>>,

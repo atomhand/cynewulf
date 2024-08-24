@@ -20,7 +20,7 @@ mod star;
 pub use star::{Star,OverlaysTriangulationVertex};
 
 mod hypernet;
-pub use hypernet::{Hypernet,Hyperlane,Hypernode,HypernetConnection};
+pub use hypernet::Hypernet;
 
 mod planet;
 pub use planet::Planet;

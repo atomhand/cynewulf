@@ -5,18 +5,12 @@ use rand::prelude::*;
 use petgraph::prelude::*;
 use crate::prelude::*;
 use super::pathfinding::Pathfinding;
-
-#[derive(Clone)]
-pub struct HypernetConnection {
-    pub dest : u32,
-    pub length : i32
-}
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct Hypernode {
     pub pos : Vec3,
     pub star : Entity
-    //pub connections : Vec::<HypernetConnection>,
 }
 
 impl Hypernode {
@@ -24,57 +18,25 @@ impl Hypernode {
         Self {
             pos,
             star : Entity::PLACEHOLDER
-            //connections : Vec::new(),
         }
     }
-    /*
-    fn add(&mut self, other : u32, length : i32) {
-        self.connections.push(HypernetConnection{ dest: other, length});
-    }
-    fn remove(&mut self, other : u32) {
-        for i in 0..self.connections.len() {
-            if self.connections[i].dest == other {
-                self.connections.swap_remove(i);
-                break;
-            }
-        }
-    }
-
-    fn clear(&mut self) {
-        self.connections.clear();
-    }
-    */
 }
 
 #[derive(Clone)]
 pub struct Hyperlane {
-    //pub node_a : u32,
-    //pub node_b : u32,
     pub length : i32,
 }
 
-use std::collections::HashSet;
 
 #[derive(Resource)]
 pub struct Hypernet {
     pub graph : StableGraph::<Hypernode,Hyperlane, Undirected, u32>,
-    //pub nodes : Vec::<Hypernode>,
-    //pub lanes : Vec::<Hyperlane>,
 }
 impl Hypernet {
-    /*
-    fn remove_link(&mut self, a : u32, b : u32) {
-        self.nodes[a as usize].remove(b);
-        self.nodes[b as usize].remove(a);
-    }
-    */
 
     pub fn new() -> Self {
         Self {
             graph : StableGraph::<_,_,Undirected>::default(),
-            //nodes : Vec::new(),
-            //lanes : Vec::new(),
-            //stars_index : Vec::new()
         }
     }
 
@@ -85,26 +47,14 @@ impl Hypernet {
     pub fn build_from_points(&mut self, points : &Vec<Point>, length_remove_threshold : f32, removal_rate : f32) {
         self.import(points);
         self.remove_over_length(length_remove_threshold);
-
-        // this is just to gen an initial count
-        //self.finalise_links();
-
         self.remove_random((self.graph.edge_count() as f32 * removal_rate) as u32, 12);
-        //self.finalise_links();
     }
 
     fn import(&mut self, points : &Vec<Point>) {
         let del = triangulate(&points);
 
-
-
         for point in points {
             self.graph.add_node(Hypernode::new(Vec3::new(point.x as f32,0.0,point.y as f32)));
-            /*
-            self.nodes.push(
-                Hypernode::new(Vec3::new(point.x as f32,0.0,point.y as f32))
-            )
-            */
         }
 
         for i in 0..del.halfedges.len() {
@@ -114,22 +64,20 @@ impl Hypernet {
             if hb != EMPTY {
                 let b = del.triangles[hb] as u32;
                 if  a < b {
-                    /*
-                    let dist = (10000. * Vec3::distance(self.nodes[a].pos,self.nodes[b].pos)) as i32;
-                    self.nodes[a].add(b as u32, dist);
-                    self.nodes[b].add(a as u32, dist);
-                    */
-                    self.graph.add_edge(a.into(),b.into(), Hyperlane {
-                        //node_a : a as u32,
-                        //node_b : b as u32,
-                        length : (GalaxyConfig::GALACTIC_INTEGER_SCALE as f32 * Vec3::distance(self.graph.node_weight(a.into()).unwrap().pos, self.graph.node_weight(b.into()).unwrap().pos)) as i32
-                    });
+                    let a_pos = self.graph.node_weight(a.into()).unwrap().pos;
+                    let b_pos = self.graph.node_weight(b.into()).unwrap().pos;
+                    self.graph.add_edge(
+                        a.into(),
+                        b.into(), 
+                        Hyperlane {
+                            length : (GalaxyConfig::GALACTIC_INTEGER_SCALE as f32 * a_pos.distance(b_pos)) as i32
+                        });
                 }
             }
         }
 
-        // Remove nodes on the hull
-        // + for nodes adjacent to 
+        // Mark nodes on and adjacent to the hull, and remove all their edges
+        // (We keep the nodes themselves - but not as stars - because they're used for triangulating the territory overlays)
         let mut to_clear : HashSet<usize> = std::collections::HashSet::new();
         for i in del.hull {
             for b in self.graph.neighbors(NodeIndex::new(i)) {
@@ -185,15 +133,13 @@ impl Hypernet {
     // at each iteration, the removed edge cannot result in a new distance between its vertices > max_new_distance
     // The distance restriction isn't perfect (future iterations can & will increase the distance between previously split vertices) but it's better than nothing
     fn remove_random(&mut self, number : u32, max_new_distance : u32) {
-
-        let mut i = 0;
-
         let mut candidate_edges = self.graph.edge_indices().collect::<Vec<_>>();
 
+        let mut i = 0;
+        let mut rng = rand::thread_rng();
         while i < number {
             if candidate_edges.len() == 0 { break; }
 
-            let mut rng = rand::thread_rng();
             let r = rng.gen_range(0..candidate_edges.len());
 
             let e = candidate_edges[r];
