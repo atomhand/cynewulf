@@ -8,7 +8,6 @@ use bevy::{
     pbr::{
         MeshPipeline, MeshPipelineKey, RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup,
     },
-    prelude::*,
     render::{
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         mesh::{GpuBufferInfo, GpuMesh, MeshVertexBufferLayoutRef},
@@ -19,7 +18,7 @@ use bevy::{
         },
         render_resource::{*,binding_types::uniform_buffer},
         renderer::{RenderDevice,RenderQueue},
-        view::{ExtractedView, NoFrustumCulling},
+        view::ExtractedView,
         Render, RenderApp, RenderSet,
     },
 };

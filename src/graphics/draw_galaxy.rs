@@ -1,15 +1,9 @@
 
 use bevy::prelude::*;
 use crate::prelude::*;
-use crate::camera::{CameraSettings,CameraMode,camera_control_system};
-
-#[derive(Component)]
-struct GalaxyViewComponent
-
-;#[derive(Component)]
-struct SystemViewComponent;
-
-use super::galaxy_materials::{PlanetBillboardMaterial,StarBillboardMaterial,SystemStarBillboardMaterial};
+use crate::camera::{CameraSettings,CameraMode};
+use crate::galaxy::Selection;
+use super::galaxy_materials::PlanetBillboardMaterial;
 
 fn finish_assemble_star_system(
     stars : Query<(&Star,Entity),Added<Star>>,
@@ -17,8 +11,6 @@ fn finish_assemble_star_system(
     mut commands : Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut planet_materials: ResMut<Assets<PlanetBillboardMaterial>>,
-    mut galaxy_materials: ResMut<Assets<StarBillboardMaterial>>,
-    mut system_materials: ResMut<Assets<SystemStarBillboardMaterial>>,
 ) {
 
     let billboardmesh = meshes.add(Rectangle::from_size(Vec2::splat(2.0)));
@@ -34,27 +26,6 @@ fn finish_assemble_star_system(
             }
         );
     }
-
-    /*
-    for (star,entity) in &stars {
-
-        let galaxy_star = commands.spawn(
-            (MaterialMeshBundle {
-                mesh : billboardmesh.clone(),
-                material: galaxy_materials.add(StarBillboardMaterial::new(star.get_color(), star.get_scaled_radius())),
-                visibility : Visibility::Visible,
-                ..default()
-            },GalaxyViewComponent)).id();
-        let system_star = commands.spawn(
-            (MaterialMeshBundle {
-                mesh : billboardmesh.clone(),
-                material: system_materials.add(SystemStarBillboardMaterial::new(star.get_color(), star.get_scaled_radius())),
-                visibility : Visibility::Inherited,
-                ..default()
-            },SystemViewComponent)).id();
-        commands.entity(entity).push_children(&[galaxy_star,system_star]);
-    }
-    */
     
     commands.spawn((
         billboardmesh.clone(),
@@ -68,8 +39,7 @@ fn finish_assemble_star_system(
             }).collect(),
         ),
         bevy::render::view::NoFrustumCulling
-    ));
-    
+    ));    
 }
 
 pub struct DrawGalaxyPlugin;
@@ -80,52 +50,6 @@ impl Plugin for DrawGalaxyPlugin {
             .add_systems(Update, finish_assemble_star_system);
     }
 }
-
-fn update_stars_zoom(
-    cam_query: Query<&crate::camera::CameraMain>,
-    star_mat_handles : Query<&Handle<StarBillboardMaterial>,With<GalaxyViewComponent>>,
-    mut mats : ResMut<Assets<StarBillboardMaterial>>,
- ) {
-    return;
-    let cam = cam_query.get_single().unwrap();
-    for mat_handle in star_mat_handles.iter() {
-        let Some(mat) = mats.get_mut(mat_handle) else {continue;};
-        mat.system_transition_factor = cam.mode_transition;
-    }
- }
-
-fn update_stars_visibility(
-    mut galaxy_stars : Query<&mut Visibility, With<GalaxyViewComponent>>,
-    mut system_stars : Query<&mut Visibility, (With<Star>, Without<GalaxyViewComponent>)>,
-    mut cam : ResMut<CameraSettings>,
-) {
-    if !cam.visibility_updated {
-        match cam.camera_mode {
-            CameraMode::Galaxy => {
-                for mut star_vis in galaxy_stars.iter_mut() {
-                    *star_vis = Visibility::Hidden;
-                }
-                for mut star_vis in system_stars.iter_mut() {
-                    *star_vis = Visibility::Hidden;
-                }
-            },
-            CameraMode::Star => {
-                for mut star_vis in galaxy_stars.iter_mut() {
-                    //*star_vis = Visibility::Hidden;
-                    *star_vis = Visibility::Hidden;
-                }
-                for mut star_vis in system_stars.iter_mut() {
-                    //*star_vis = Visibility::Visible;
-                    *star_vis = Visibility::Hidden;
-                }
-            }
-        }
-
-        cam.visibility_updated = true;
-    }
-}
-
-use crate::galaxy::Selection;
 
 pub fn draw_hyperlanes(
     hypernet : Res<Hypernet>,
