@@ -30,9 +30,9 @@ fn finish_assemble_star_system(
     commands.spawn((
         billboardmesh.clone(),
         SpatialBundle::INHERITED_IDENTITY,
-        super::instanced_star_material::InstanceMaterialData(
+        super::instanced_star_pipeline::StarInstanceMaterialData(
             stars.iter().map(|(star,_)|
-            super::instanced_star_material::InstanceData {
+            super::instanced_star_pipeline::StarInstanceData {
                 position: star.pos,
                 star_radius: star.get_scaled_radius(),
                 color: Srgba::from_vec3(star.get_color()).to_f32_array(),
@@ -46,7 +46,7 @@ pub struct DrawGalaxyPlugin;
 
 impl Plugin for DrawGalaxyPlugin {
     fn build(&self, app : &mut App) {
-        app.add_plugins(super::instanced_star_material::StarMaterialPlugin)
+        app.add_plugins(super::instanced_star_pipeline::StarMaterialPlugin)
             .add_systems(Update, finish_assemble_star_system);
     }
 }

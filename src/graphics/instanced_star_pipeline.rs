@@ -29,7 +29,7 @@ pub struct StarMaterialPlugin;
 impl Plugin for StarMaterialPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(
-            (ExtractComponentPlugin::<InstanceMaterialData>::default(),
+            (ExtractComponentPlugin::<StarInstanceMaterialData>::default(),
             ExtractComponentPlugin::<crate::camera::CameraMain>::default())        
         );
         app.sub_app_mut(RenderApp)
@@ -52,21 +52,21 @@ impl Plugin for StarMaterialPlugin {
 }
 
 #[derive(Component, Deref)]
-pub struct InstanceMaterialData(pub Vec<InstanceData>);
+pub struct StarInstanceMaterialData(pub Vec<StarInstanceData>);
 
-impl ExtractComponent for InstanceMaterialData {
-    type QueryData = &'static InstanceMaterialData;
+impl ExtractComponent for StarInstanceMaterialData {
+    type QueryData = &'static StarInstanceMaterialData;
     type QueryFilter = ();
     type Out = Self;
 
     fn extract_component(item: QueryItem<'_,Self::QueryData>) -> Option<Self> {
-        Some(InstanceMaterialData(item.0.clone()))
+        Some(StarInstanceMaterialData(item.0.clone()))
     }
 }
 
 #[derive(Clone,Copy,Pod,Zeroable)]
 #[repr(C)]
-pub struct InstanceData {
+pub struct StarInstanceData {
     pub position : Vec3,
     pub star_radius : f32,
     pub color: [f32; 4],
@@ -84,7 +84,7 @@ fn queue_custom(
     pipeline_cache: Res<PipelineCache>,
     meshes: Res<RenderAssets<GpuMesh>>,
     render_mesh_instances: Res<RenderMeshInstances>,
-    material_meshes: Query<Entity, With<InstanceMaterialData>>,
+    material_meshes: Query<Entity, With<StarInstanceMaterialData>>,
     mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent3d>>,
     mut views: Query<(Entity, &ExtractedView)>,
 ) {
@@ -136,7 +136,7 @@ struct InstanceBuffer {
 // Boiler plate, no customisatino required
 fn prepare_instance_buffers(
     mut commands: Commands,
-    query: Query<(Entity, &InstanceMaterialData)>,
+    query: Query<(Entity, &StarInstanceMaterialData)>,
     render_device: Res<RenderDevice>,
 ) {
     for (entity, instance_data) in &query {
@@ -159,7 +159,7 @@ struct StarPipeline {
     uniforms_layout: BindGroupLayout
 }
 
-#[derive(Component, Default, Clone, Copy, ExtractComponent, ShaderType)]
+#[derive(Component, Default, Clone, Copy, ShaderType)]
 struct StarInstancingUniforms {
     system_transition_factor: f32,
     // WebGL2 structs must be 16 byte aligned.
@@ -203,7 +203,7 @@ impl SpecializedMeshPipeline for StarPipeline {
         descriptor.vertex.shader = self.shader.clone();
         // THIS IS WHERE THE SHADER-SIDE BUFFER LAYOUT IS DEFINED
         descriptor.vertex.buffers.push(VertexBufferLayout {
-            array_stride: std::mem::size_of::<InstanceData>() as u64,
+            array_stride: std::mem::size_of::<StarInstanceData>() as u64,
             step_mode: VertexStepMode::Instance,
             attributes: vec![
                 VertexAttribute {

@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-mod instanced_star_material;
+mod instanced_star_pipeline;
 
 mod draw_galaxy;
 pub struct GraphicsPlugin;
