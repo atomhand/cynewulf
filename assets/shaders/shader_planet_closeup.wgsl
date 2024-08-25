@@ -72,7 +72,8 @@ fn subsample(ro : vec3<f32>, rd_in : vec3<f32>, sph : vec4<f32>, vert_xy : vec2<
 
         return vec4<f32>(attenuation * surface_color,1.0);
     } else {
-        let halo_strength = smoothstep(0.05,0.3,1.0 - plane_dist);//min(smoothstep(0.05,0.1,1.0 - plane_dist), smoothstep(0.75,0.9,plane_dist));
+        //let halo_strength = smoothstep(0.05,0.3,1.0 - plane_dist);
+        let halo_strength = step(0.25,1.0 - plane_dist);
         return vec4<f32>(halo_color*halo_strength,halo_strength);
     }
 }

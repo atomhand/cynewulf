@@ -30,8 +30,8 @@ struct VertexOutput {
 fn vertex(vertex: Vertex) -> VertexOutput {
     //let model = get_world_from_local(vertex.instance_index);
 
-    let star_radius = vertex.i_pos_scale.w;
-    let scale_factor =  mix(15.0,star_radius * 15.0, settings.system_transition_factor);
+    let star_radius = 0.0093;//vertex.i_pos_scale.w;
+    let scale_factor =  mix(7.0,star_radius * 30.0, settings.system_transition_factor);
 
     let camera_right = normalize(vec3<f32>(view.clip_from_world.x.x, view.clip_from_world.y.x, view.clip_from_world.z.x));
     let camera_up = normalize(vec3<f32>(view.clip_from_world.x.y, view.clip_from_world.y.y, view.clip_from_world.z.y));
@@ -43,57 +43,25 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     out.clip_position = position;
     out.color = vertex.i_color;
     out.uv = vertex.position.xy;
-    // out.uv = vertex.position.xy;// * scale_factor;
-    // out.sphere_origin = (model * vec4<f32>(0.0,0.0,0.0,1.0)).xyz;
-    // out.camera_origin = view.world_position;
-    // out.ray_dir = (model * vec4<f32>(world_space, 1.0)).xyz - view.world_position ;
 
     return out;
-
-    //let position = vertex.position * vertex.i_pos_scale.w + vertex.i_pos_scale.xyz;
-    //var out: VertexOutput;
-
-    // NOTE: Passing 0 as the instance_index to get_world_from_local() is a hack
-    // for this example as the instance_index builtin would map to the wrong
-    // index in the Mesh array. This index could be passed in via another
-    // uniform instead but it's unnecessary for the example.
-
-/*
-    As it stands, this shader isn't using the world to local transform, just holding onto it for posterity
-
-    let world_to_local = mat4x4<f32>(
-        vec4<f32>(1.0,0.0,0.0,0.0),
-        vec4<f32>(0.0,1.0,0.0,0.0),
-        vec4<f32>(0.0,0.0,1.0,0.0),
-        vec4<f32>(0.0,0.0,0.0,1.0));
-    
-    mesh_position_local_to_clip(
-        world_to_local,
-        vec4<f32>(position, 1.0)
-    )
-*/
-
-
-    //out.clip_position = position_world_to_clip(position); 
-
-    //out.color = vertex.i_color;
-    //return out;
 }
 
-fn rnd(val : i32) -> f32{
-    return 0.75;
+fn rnd(n : i32) -> f32{
+    return fract(sin(f32(n)*543.21)*43758.5453);
 }
 
 
 fn draw_star(pos : vec2<f32>, star_color : vec3<f32>, I : f32) -> vec3<f32> {
-    //let star_luminosity : f32 = 1e3;
-    //let star_color : vec3<f32> = vec3<f32>(1.,.3,.1)*star_luminosity;
+    let a = (star_color.r + star_color.g + star_color.b) / 3.0;
 
-    let SCALE = 1.0 /8.0;// / 20.0;//star_radius * 0.01;
+    let c = star_color * (0.5 + 0.5 / a);//star_color * (24.0 / a);
+
+    var SCALE = 1.0;// /16.0;
     var d : f32 = length(pos) * SCALE;
 
-    var col = I * star_color;
-    var spectrum = I * star_color;
+    var col = I * c;
+    var spectrum = I * c;
 
     col = spectrum / (d*d*d);
 
@@ -107,9 +75,9 @@ fn draw_star(pos : vec2<f32>, star_color : vec3<f32>, I : f32) -> vec3<f32> {
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    let I = .02*exp(-15.*rnd(6*1+4));
+    let I = 1.0 / 512.0;//.02*exp(-15.*rnd(1));
     let starcol = draw_star(in.uv, in.color.rgb, I);
-    let a = (starcol.x+starcol.y+starcol.z)/3.0;//max(starcol.x,max(starcol.y,starcol.z));
+    let a = (starcol.x+starcol.y+starcol.z)/3.0;
 
     return vec4<f32>(starcol,a);
 }
