@@ -9,7 +9,7 @@ rustflags = [
    "-C",
     "link-arg=-fuse-ld=/usr/bin/mold",
   "-Zshare-generics=y",                                   # (Nightly) Make the current crate share its generic instantiations
-  "-Zthreads=8",                                          # (Nightly) Use improved multithreading with the recommended amount of threads.
+  "-Zthreads=0",                                          # (Nightly) Use improved multithreading with the recommended amount of threads.
 ]
 
 # NOTE: you must install [Mach-O LLD Port](https://lld.llvm.org/MachO/index.html) on mac. you can easily do this by installing llvm which includes lld with the "brew" package manager:
