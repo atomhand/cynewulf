@@ -67,8 +67,9 @@ impl Plugin for GalaxySetupPlugin {
         app.add_plugins((selection::SelectionPlugin, picking_backend::PickingBackendPlugin))
             .insert_resource(GalaxyConfig::default())
             .insert_resource(Hypernet::new())
+            .insert_resource(crate::markov_chain::UsedPlanetNames::default())
             //.insert_resource(SelectedObject{hovered_star : None})
             .add_systems(Startup, (galaxy_generation::setup_stars,empires_placement::place_star_empires.after(galaxy_generation::setup_stars)))
-            .add_systems(Update, description::update_descriptions_system);
+            .add_systems(Update, (description::update_descriptions_system,empires_placement::finish_create_colony));
     }
 }

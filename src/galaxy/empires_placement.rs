@@ -3,11 +3,27 @@ use bevy::prelude::*;
 use rand::prelude::*;
 use std::collections::HashSet;
 
+use super::Description;
+
 use crate::prelude::*;
+
+// This should probably be in a different file..
+pub fn finish_create_colony(
+    mut empire_query : Query<&mut Empire, Without<Description>>,
+    mut colony_query : Query<(&mut  Description,&Colony), Added<Colony>>,
+    mut used_planet_names : ResMut<crate::markov_chain::UsedPlanetNames>,
+) {
+    for (mut desc, colony) in colony_query.iter_mut() {
+        let Ok(mut empire) = empire_query.get_mut(colony.owner) else { continue; };
+
+        desc.name = empire.namegen.next(&mut used_planet_names).clone();
+    }
+}
 
 pub fn place_star_empires(mut commands : Commands,
     mut star_query : Query<(Entity,&Star, &mut StarClaim)>,
-    planet_query : Query<&Planet, Without<Star>>
+    planet_query : Query<&Planet, Without<Star>>,
+    mut used_planet_names : ResMut<crate::markov_chain::UsedPlanetNames>,
 ) {
     let num_empires = 10;
 
@@ -39,9 +55,7 @@ pub fn place_star_empires(mut commands : Commands,
 
         if let Some((planet_entity,star_entity,score)) = best {
             if score > 0.0 {
-                let new_empire = commands.spawn(Empire {
-                    color : Color::srgb(rng.gen(),rng.gen(),rng.gen())
-                }).id();
+                let new_empire = commands.spawn(Empire::random(&mut rng, &mut used_planet_names)).id();
                 let (_,star,mut star_claim) = star_query.get_mut(star_entity).unwrap();
                 star_claim.owner = Some(new_empire);
                 commands.entity(planet_entity).insert(Colony {
