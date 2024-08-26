@@ -3,7 +3,7 @@ use delaunator::{Point,triangulate};
 
 use bevy::prelude::*;
 use crate::galaxy::{Star,OverlaysTriangulationVertex};
-use crate::simulation::data::{StarClaim,Empire};
+use crate::prelude::*;
 
 use bevy::{
     reflect::TypePath,
@@ -80,7 +80,7 @@ pub struct OverlaysPlugin;
 impl Plugin for OverlaysPlugin {
     fn build(&self, app : &mut App) {
         app.add_plugins(MaterialPlugin::<TerritoryOverlaysMaterial>::default())
-            .add_systems(Startup, generate_overlays_mesh.after(crate::galaxy::galaxy_generation::setup_stars))
+            .add_systems(Startup, generate_overlays_mesh.after(crate::generators::galaxy_generation::setup_stars))
             .add_systems(Update,update_overlays);
     }
 }

@@ -1,17 +1,15 @@
 use bevy::prelude::*;
 use crate::prelude::*;
-use super::galaxy_config::GalaxyConfig;
-use super::Hypernet;
-use rand::prelude::*;
-use super::selection::{SystemSelectable,GalaxySelectable};
 
-use super::Description;
+use rand::prelude::*;
+use crate::galaxy::selection::{SystemSelectable,GalaxySelectable};
+
+use crate::galaxy::Description;
 
 use delaunator::Point;
 
 use std::f32::consts::PI;
-use super::{Planet,Star};
-use super::star::OverlaysTriangulationVertex;
+use crate::galaxy::OverlaysTriangulationVertex;
 
 pub fn setup_stars(mut commands : Commands,
     galaxy_config : Res<GalaxyConfig>,
@@ -51,7 +49,7 @@ pub fn setup_stars(mut commands : Commands,
 
     hypernet.build_from_points(&points,1.5,0.6);
 
-    let mut starname_gen = crate::markov_chain::StarNameGenerator::new();
+    let mut starname_gen = super::markov_chain::StarNameGenerator::new();
 
     for node_id in hypernet.graph.node_indices().collect::<Vec<_>>() {
         let node = hypernet.graph.node_weight(node_id).unwrap();
@@ -95,7 +93,7 @@ pub fn setup_stars(mut commands : Commands,
                 SystemSelectable{radius : rad * 1.75 },
                 GalaxySelectable{ radius : 10.0 },
                 Description::star(starname),
-                crate::simulation::fleet::SystemFleetInfo::default(),
+                crate::galaxy::fleet::SystemFleetInfo::default(),
                 TransformBundle::from_transform(Transform::from_translation(star_pos)),
                 VisibilityBundle::default()
             )).id();

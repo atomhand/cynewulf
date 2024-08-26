@@ -5,7 +5,7 @@ pub enum DescribableType {
     Star,
 }
 
-use crate::simulation::data::{Empire,Colony};
+use super::{Empire,Colony};
 
 pub fn update_descriptions_system (
     mut query : Query<(&mut Description,&Colony), Changed<Colony>>,

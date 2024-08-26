@@ -99,7 +99,7 @@ fn hyperlane_transit_point(star : &Star, other : Vec3) -> Vec3 {
     let dir = (other.as_dvec3() - star.pos.as_dvec3()).normalize();
     (dir * star.system_radius_actual() as f64).as_vec3()
 }
-use crate::simulation::fleet::Fleet;
+use crate::galaxy::Fleet;
 #[derive(Event)]
 pub struct ColonisePlanetEvent {
     planet_entity : Entity,

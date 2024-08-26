@@ -8,9 +8,9 @@ mod galaxy;
 mod graphics;
 mod simulation;
 mod interface;
-mod markov_chain;
 mod prelude;
 mod util;
+mod generators;
 
 use std::env;
 
@@ -25,7 +25,8 @@ fn main() {
             simulation::SimulationPlugin,
             interface::InterfacePlugin,
             camera::CameraPlugin,
-            bevy_mod_picking::DefaultPickingPlugins
+            bevy_mod_picking::DefaultPickingPlugins,
+            generators::GalaxyGenerationPlugin
         ))
         .run();
 }

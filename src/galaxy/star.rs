@@ -23,7 +23,7 @@ impl Star {
         self.system_radius_au() * GalaxyConfig::AU_SCALE
     }
 
-    pub fn new(star_name_gen : &mut crate::markov_chain::StarNameGenerator, id : u32, pos : Vec3, stellar_masses : f32) -> Star {
+    pub fn new(star_name_gen : &mut crate::generators::markov_chain::StarNameGenerator, id : u32, pos : Vec3, stellar_masses : f32) -> Star {
         Star {
             node_id : id,
             pos,

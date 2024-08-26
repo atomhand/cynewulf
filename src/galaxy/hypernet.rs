@@ -4,7 +4,7 @@ use delaunator::{Point,triangulate, EMPTY};
 use rand::prelude::*;
 use petgraph::prelude::*;
 use crate::prelude::*;
-use super::pathfinding::Pathfinding;
+use super::hypernet_pathfinding::Pathfinding;
 use std::collections::HashSet;
 
 #[derive(Clone)]

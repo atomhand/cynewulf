@@ -1,33 +1,7 @@
 use crate::prelude::*;
-use super::resource_stock::ResourceStock;
+use super::dynamic_stock::DynamicStock;
 
-/* 
-impl PopulationNumber {
-    pub const ZERO : Self = PopulationNumber {
-        raw : ResourceStock {
-            stock : 0,
-            stock_frac : 0,
-            change_per_decade : 0
-        }
-    };
-
-    pub fn new(raw : i64) -> Self {
-        PopulationNumber {
-            raw : ResourceStock::new(raw)
-        }
-    }
-
-    pub fn actual(&self) -> u64 {
-        self.raw.stock
-    }
-}
-impl std::string::ToString for PopulationNumber {
-    fn to_string(&self) -> String {
-        self.raw.format_number()
-    }
-}
-*/
-pub struct Population(ResourceStock);
+pub struct Population(DynamicStock);
 
 impl std::string::ToString for Population {
     fn to_string(&self) -> String {
@@ -37,7 +11,7 @@ impl std::string::ToString for Population {
 
 impl Population {
     pub fn new(raw : i64) -> Self {
-        Self(ResourceStock::new(raw))
+        Self(DynamicStock::new(raw))
     }
     pub fn add(&mut self, val : i64) {
         self.0.stock += val;

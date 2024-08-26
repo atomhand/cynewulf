@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use rand::prelude::*;
 use std::collections::HashSet;
 
-use super::Description;
+use crate::galaxy::Description;
 
 use crate::prelude::*;
 
@@ -11,7 +11,7 @@ use crate::prelude::*;
 pub fn finish_create_colony(
     mut empire_query : Query<&mut Empire, Without<Description>>,
     mut colony_query : Query<(&mut  Description,&Colony), Added<Colony>>,
-    mut used_planet_names : ResMut<crate::markov_chain::UsedPlanetNames>,
+    mut used_planet_names : ResMut<super::markov_chain::UsedPlanetNames>,
 ) {
     for (mut desc, colony) in colony_query.iter_mut() {
         let Ok(mut empire) = empire_query.get_mut(colony.owner) else { continue; };
@@ -23,7 +23,7 @@ pub fn finish_create_colony(
 pub fn place_star_empires(mut commands : Commands,
     mut star_query : Query<(Entity,&Star, &mut StarClaim)>,
     planet_query : Query<&Planet, Without<Star>>,
-    mut used_planet_names : ResMut<crate::markov_chain::UsedPlanetNames>,
+    mut used_planet_names : ResMut<super::markov_chain::UsedPlanetNames>,
 ) {
     let num_empires = 10;
 
@@ -67,7 +67,7 @@ pub fn place_star_empires(mut commands : Commands,
                 claimed_systems.insert(star_entity);
 
                 // TEMP - Spawn a fleet too for luck
-                commands.spawn(crate::simulation::fleet::FleetBundle::new(new_empire, star.node_id));
+                commands.spawn(crate::galaxy::fleet::FleetBundle::new(new_empire, star.node_id));
             }
         }
     }    

@@ -3,7 +3,7 @@ use crate::prelude::*;
 
 use std::fmt;
 
-use super::IPercent;
+use crate::util::number::IPercent;
 
 pub struct Economy {
     light_infra : i64,

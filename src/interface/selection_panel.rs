@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::galaxy::{Selection,GalaxyConfig};
 use bevy_mod_picking::prelude::*;
+use crate::prelude::*;
 
 /// Marker to find the text entity so we can update it
 #[derive(Component)]
@@ -184,9 +185,6 @@ fn widget_interact_system(
         }
     }
 }
-
-use crate::galaxy::Planet;
-use crate::simulation::data::Colony;
 
 fn update_widget_system(
     mut root_query: Query<(&mut Style, &mut BackgroundColor, &mut BorderColor, &SelectionPanelTabRoot)>,

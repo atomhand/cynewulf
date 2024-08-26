@@ -1,7 +1,5 @@
 use bevy::prelude::*;
 use crate::camera::{CameraSettings, CameraMode};
-use super::Star;
-
 
 pub struct SelectionPlugin;
 

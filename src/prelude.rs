@@ -1,9 +1,10 @@
 
-pub use crate::simulation::data::{
+pub use crate::simulation::data::population::Population;
+
+pub use crate::galaxy::{
     Empire,
     StarClaim,
     colony::{Economy,Colony},
-    population::Population
 };
 
 pub use crate::galaxy::{

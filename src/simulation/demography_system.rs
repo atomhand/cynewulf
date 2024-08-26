@@ -1,5 +1,3 @@
-
-use super::data::*;
 use bevy::prelude::*;
 use crate::prelude::*;
 

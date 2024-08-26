@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use super::navigation::*;
+use crate::simulation::navigation::*;
 use crate::prelude::*;
 
 #[derive(Component)]

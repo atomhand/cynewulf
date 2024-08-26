@@ -2,11 +2,9 @@ use bevy::prelude::*;
 use bevy::ecs::schedule::ScheduleLabel;
 mod time;
 mod orbits;
-mod demographics;
+mod demography_system;
 pub mod navigation;
 pub mod data;
-
-pub mod fleet;
 
 pub use time::SimTime;
 
@@ -91,7 +89,7 @@ impl Plugin for SimulationPlugin {
         simulation_schedule.add_systems((
             time::tick_date_system,
             orbits::update_orbiters,
-            demographics::update_population,
+            demography_system::update_population,
             (navigation::navigation_update_nav_system,
             navigation::nav_find_colony_target_system,
             navigation::process_colonise_events).chain()
@@ -100,7 +98,7 @@ impl Plugin for SimulationPlugin {
         app.insert_resource(SimTime::new())
             .insert_resource(SimulationSettings{ mode : SimulationMode::Normal, paused : true, time_since_tick : 0.0})
             .add_schedule(simulation_schedule)
-            .add_systems(Update,(simulation_tick_system,fleet::fleet_preview_gizmos))
+            .add_systems(Update,(simulation_tick_system,crate::galaxy::fleet::fleet_preview_gizmos))
             .add_event::<navigation::ColonisePlanetEvent>();
     }
 }
