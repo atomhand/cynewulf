@@ -24,6 +24,7 @@ pub fn place_star_empires(mut commands : Commands,
     mut star_query : Query<(Entity,&Star, &mut StarClaim)>,
     planet_query : Query<&Planet, Without<Star>>,
     mut used_planet_names : ResMut<super::markov_chain::UsedPlanetNames>,
+    mut player_empire : ResMut<crate::galaxy::empire::PlayerEmpire>
 ) {
     let num_empires = 10;
 
@@ -31,7 +32,7 @@ pub fn place_star_empires(mut commands : Commands,
 
     let mut rng = thread_rng();
 
-    for _i in 0..num_empires {
+    for i in 0..num_empires {
         let mut best : Option<(Entity,Entity,f32)> = None;
 
         for (star_entity,star, _star_claim) in &star_query {
@@ -56,6 +57,13 @@ pub fn place_star_empires(mut commands : Commands,
         if let Some((planet_entity,star_entity,score)) = best {
             if score > 0.0 {
                 let new_empire = commands.spawn(Empire::random(&mut rng, &mut used_planet_names)).id();
+
+                // ~~ temp
+                // give the player an empire
+                if player_empire.empire == None {
+                    player_empire.empire = Some(new_empire);
+                }
+
                 let (_,star,mut star_claim) = star_query.get_mut(star_entity).unwrap();
                 star_claim.owner = Some(new_empire);
                 commands.entity(planet_entity).insert(Colony {

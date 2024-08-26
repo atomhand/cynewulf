@@ -5,6 +5,7 @@ mod time_control;
 mod star_label;
 mod hovered_item_widget;
 mod selection_panel;
+mod empire_panel;
 
 mod hud;
 
@@ -15,9 +16,9 @@ struct UIConsts;
 impl Plugin for InterfacePlugin {
     fn build(&self, app : &mut App) {
         app.add_plugins((
-            hovered_item_widget::HoverWidgetPlugin,
             time_widget::TimeWidgetPlugin,
-            selection_panel::SelectionPanelPlugin
+            selection_panel::SelectionPanelPlugin,
+            empire_panel::EmpirePanelPlugin
         ))
             .add_systems(Update, (
                 time_control::time_control_system,

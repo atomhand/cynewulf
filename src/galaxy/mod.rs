@@ -38,6 +38,7 @@ impl Plugin for GalaxySetupPlugin {
         app.add_plugins((selection::SelectionPlugin, picking_backend::PickingBackendPlugin))
             .insert_resource(GalaxyConfig::default())
             .insert_resource(Hypernet::new())
+            .insert_resource(empire::PlayerEmpire { empire : None })
             //.insert_resource(SelectedObject{hovered_star : None})
             .add_systems(Update, (description::update_descriptions_system));
     }
