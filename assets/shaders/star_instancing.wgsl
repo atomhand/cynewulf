@@ -66,9 +66,9 @@ fn draw_star(pos : vec2<f32>, star_color : vec3<f32>, I : f32) -> vec3<f32> {
     col = spectrum / (d*d*d);
 
     d = length(pos * vec2<f32>(50.0,0.5)) * SCALE;
-    col += spectrum/ (d*d*d);
+    col += spectrum/ (d*d*d) * (1.0 - settings.system_transition_factor);
     d = length(pos * vec2<f32>(0.5,50.0)) * SCALE;
-    col += spectrum / (d*d*d);
+    col += spectrum / (d*d*d) * (1.0 - settings.system_transition_factor);
 
     return col * (1.0 - smoothstep(0.9,1.0,length(pos)));
 }

@@ -175,7 +175,7 @@ impl FromWorld for StarPipeline {
         let layout = render_device.create_bind_group_layout(
             "star_instancing_bind_group_layout",
             &BindGroupLayoutEntries::single(
-                ShaderStages::VERTEX,                
+                ShaderStages::VERTEX | ShaderStages::FRAGMENT,                
                 uniform_buffer::<StarInstancingUniforms>(true),
             ),
         );
