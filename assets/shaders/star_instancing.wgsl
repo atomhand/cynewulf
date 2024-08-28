@@ -70,13 +70,42 @@ fn draw_star(pos : vec2<f32>, star_color : vec3<f32>, I : f32) -> vec3<f32> {
     d = length(pos * vec2<f32>(0.5,50.0)) * SCALE;
     col += spectrum / (d*d*d) * (1.0 - settings.system_transition_factor);
 
-    return col * (1.0 - smoothstep(0.9,1.0,length(pos)));
+    return col ;//* (1.0 - smoothstep(0.9,1.0,length(pos)));
 }
+
+const weights_4 = array<vec2<f32>,4>(
+    vec2<f32>(1.0/8.0,3.0/8.0),
+    vec2<f32>(3.0/8.0,-1.0/8.0),
+    vec2<f32>(-1.0/8.0,-3.0/8.0),
+    vec2<f32>(-3.0/8.0,1.0/8.0)
+);
+const weights_8 = array<vec2<f32>,8>(
+    vec2<f32>(1.0/8.0,-3.0/8.0),
+    vec2<f32>(-1.0/8.0,3.0/8.0),
+    vec2<f32>(5.0/8.0,1.0/8.0),
+    vec2<f32>(-3.0/8.0,-5.0/8.0),
+    vec2<f32>(-5.0/8.0,5.0/8.0),
+    vec2<f32>(-7.0/8.0,-1.0/8.0),
+    vec2<f32>(3.0/8.0,7.0/8.0),
+    vec2<f32>(7.0/8.0,-7.0/8.0)
+);
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    let I = 1.0 / 512.0;//.02*exp(-15.*rnd(1));
-    let starcol = draw_star(in.uv, in.color.rgb, I);
+    let dpdx = dpdx(in.uv);//vec2(dpdx(in.uv),dpdy(in.uv));
+    let dpdy = dpdy(in.uv);
+
+    let intensity = 1.0 / 512.0;//.02*exp(-15.*rnd(1));
+    var starcol  = draw_star(in.uv + weights_8[0].x*dpdx + weights_8[0].y*dpdy, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + weights_8[1].x*dpdx + weights_8[1].y*dpdy, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + weights_8[2].x*dpdx + weights_8[2].y*dpdy, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + weights_8[3].x*dpdx + weights_8[3].y*dpdy, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + weights_8[4].x*dpdx + weights_8[4].y*dpdy, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + weights_8[5].x*dpdx + weights_8[5].y*dpdy, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + weights_8[6].x*dpdx + weights_8[6].y*dpdy, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + weights_8[7].x*dpdx + weights_8[7].y*dpdy, in.color.rgb, intensity);
+    starcol = starcol / 4.0;
+
     let a = (starcol.x+starcol.y+starcol.z)/3.0;
 
     return vec4<f32>(starcol,a);
