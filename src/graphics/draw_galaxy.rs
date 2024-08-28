@@ -6,19 +6,15 @@ use crate::galaxy::Selection;
 use super::galaxy_materials::PlanetBillboardMaterial;
 
 fn finish_assemble_star_system(
-    stars : Query<(&Star,Entity),Added<Star>>,
     planets : Query<(&Planet,Entity),Added<Planet>>,
     mut commands : Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut planet_materials: ResMut<Assets<PlanetBillboardMaterial>>,
 ) {
-
-    let billboardmesh = meshes.add(Rectangle::from_size(Vec2::splat(2.0)));
-
     for (planet,entity) in &planets {
         commands.entity(entity).insert(
             MaterialMeshBundle {
-                mesh : billboardmesh.clone(),
+                mesh :  meshes.add(Rectangle::from_size(Vec2::splat(2.0))),
                 material: planet_materials.add(PlanetBillboardMaterial::new(Vec3::new(1.0,0.5,0.0), planet.star_pos, planet.get_visual_radius())),
                 visibility : Visibility::Inherited,
                 transform : Transform::from_translation(planet.system_local_pos()),
@@ -26,7 +22,14 @@ fn finish_assemble_star_system(
             }
         );
     }
-    
+}
+
+fn star_gfx(
+    stars : Query<(&Star,Entity),Added<Star>>,
+    mut commands : Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let billboardmesh = meshes.add(Rectangle::from_size(Vec2::splat(2.0)));
     commands.spawn((
         billboardmesh.clone(),
         SpatialBundle::INHERITED_IDENTITY,
@@ -39,7 +42,7 @@ fn finish_assemble_star_system(
             }).collect(),
         ),
         bevy::render::view::NoFrustumCulling
-    ));    
+    ));
 }
 
 pub struct DrawGalaxyPlugin;
@@ -47,6 +50,7 @@ pub struct DrawGalaxyPlugin;
 impl Plugin for DrawGalaxyPlugin {
     fn build(&self, app : &mut App) {
         app.add_plugins(super::instanced_star_pipeline::StarMaterialPlugin)
+            .add_systems(Startup,star_gfx.after(crate::generators::galaxy_generation::setup_stars))
             .add_systems(Update, finish_assemble_star_system);
     }
 }
