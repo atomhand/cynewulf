@@ -24,6 +24,38 @@ fn finish_assemble_star_system(
     }
 }
 
+pub fn update_planet_materials(
+    planet_query : Query<(&Handle<PlanetBillboardMaterial>,Option<&Colony>)>,
+    star_query : Query<&Star, Without<Handle<PlanetBillboardMaterial>>>,
+    empire_query : Query<&Empire, Without<Handle<PlanetBillboardMaterial>>>,
+    mut planet_materials : ResMut<Assets<PlanetBillboardMaterial>>,
+    selection : Res<Selection>
+) {
+    let Some(star_ent) = selection.zoomed_system else { return; };
+    let Ok(star) = star_query.get(star_ent) else { return; };
+
+    for orbiter in &star.orbiters {
+        let Ok((planet,colony)) = planet_query.get(*orbiter) else { continue; };
+        let Some(mat) = planet_materials.get_mut(planet) else { continue; };
+
+        let empire_col = colony
+            .and_then(|x| empire_query.get(x.owner).ok())
+            .and_then(|x| Some(x.color)).unwrap_or(Color::srgb(0.6,0.6,0.6));
+        
+        mat.halo_color =  if Some(*orbiter) == selection.hovered {
+            if Some(*orbiter) == selection.selected {
+                Color::WHITE
+            } else {
+                Color::srgb(1.0,0.0,0.0)
+            }
+        } else if Some(*orbiter) == selection.selected {
+            Color::WHITE
+        } else {
+            empire_col
+        }.to_srgba().to_vec3();
+    }
+}
+
 fn star_gfx(
     stars : Query<(&Star,Entity),Added<Star>>,
     mut commands : Commands,
@@ -51,7 +83,7 @@ impl Plugin for DrawGalaxyPlugin {
     fn build(&self, app : &mut App) {
         app.add_plugins(super::instanced_star_pipeline::StarMaterialPlugin)
             .add_systems(Startup,star_gfx.after(crate::generators::galaxy_generation::setup_stars))
-            .add_systems(Update, finish_assemble_star_system);
+            .add_systems(Update, (finish_assemble_star_system,update_planet_materials));
     }
 }
 
