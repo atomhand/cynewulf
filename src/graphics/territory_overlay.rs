@@ -99,12 +99,12 @@ fn update_overlays(
     for (tag,claim) in &query {
         let col: [u8; 4] = if let Some(owner) = claim.owner {
             let c = empire_query.get(owner).unwrap().color.to_srgba();
-            let t = (time.elapsed_seconds_wrapped() % 3.0) / 3.0;
-            let anim = f32::min(1.0 - t, t) * 2.0;
+            let t = (time.elapsed_seconds_wrapped() % 2.0) / 2.0;
+            let anim = f32::sin(t * 2.0 * std::f32::consts::PI) * 0.5 + 0.5;
             if claim.owner == selection.hovered {               
-                c.mix(&Color::WHITE.to_srgba(),anim)
+                c.mix(&Srgba::new(1.0 - c.red,1.0 - c.green,1.0-c.blue,1.0),anim)
             } else if claim.owner == selection.selected {                
-                Color::WHITE.to_srgba()
+                c.mix(&Color::WHITE.to_srgba(),anim)
             } else {                
                 c
             }
