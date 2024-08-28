@@ -3,9 +3,14 @@ use crate::camera::{CameraSettings, CameraMode};
 use crate::prelude::*;
 
 pub struct SelectionPlugin;
+use std::collections::HashSet;
 
-use bevy_mod_picking::prelude::*;
-use bevy_mod_picking::backend::prelude::*;
+use bevy_mod_picking::{
+    prelude::*,
+    backend::prelude::*,
+    pointer::InputPress,
+    focus::HoverMap
+};
 
 impl Plugin for SelectionPlugin {
     fn build(&self, app : &mut App) {
@@ -16,14 +21,15 @@ impl Plugin for SelectionPlugin {
             zoomed_system : None,
         })
             .add_systems(Update,selection_gizmos)
-            .add_systems(PreUpdate,(update_selection,update_hovered).chain().in_set(PickSet::PostFocus));
+            .add_systems(PreUpdate,(resolve_proxies,update_selection,update_hovered).chain().in_set(PickSet::PostFocus));
     }
 }
 
 pub enum InterfaceIdentifier {
-    Entity(Entity),
-    CurrentSystem,
-    CurrentSelected,
+    // Entity(Entity),
+    PlayerEmpire,
+    // CurrentSystem,
+    // CurrentSelected,
     CurrentSystemOrbiter(u32),
 }
 
@@ -37,45 +43,57 @@ pub struct Selection {
 
 #[derive(Component)]
 pub struct SelectionProxy {
-    pub target : InterfaceIdentifier
+    pub target : InterfaceIdentifier,
+    pub resolved_target : Option<Entity>
 }
 
-use std::collections::HashSet;
-use bevy_mod_picking::pointer::InputPress;
-use bevy_mod_picking::focus::HoverMap;
-fn redirect_from_proxy(target : Entity, 
-    selection_proxy_query : &Query<&SelectionProxy>,
-    star_query : &Query<&Star>,
-    selection : &Selection
-) -> Option<Entity> {
-    if let Ok(proxy) = selection_proxy_query.get(target) {
-        match proxy.target {
+impl SelectionProxy {
+    pub fn new(target : InterfaceIdentifier) -> Self {
+        Self {
+            target,
+            resolved_target : None
+        }
+    }
+}
+
+fn resolve_proxies(
+    mut proxies : Query<&mut SelectionProxy>,
+    star_query : Query<&Star,Without<SelectionProxy>>,
+    selection : Res<Selection>,
+    player_empire : Res<crate::galaxy::empire::PlayerEmpire>,
+) {
+    for mut proxy in proxies.iter_mut() {
+        proxy.resolved_target = match proxy.target {
+            /*
             InterfaceIdentifier::Entity(entity) => {
-                return Some(entity)
+                Some(entity)
             },
             InterfaceIdentifier::CurrentSystem => {
-                return selection.selected_system
+                selection.selected_system
             },
             InterfaceIdentifier::CurrentSelected => {                    
-                return selection.selected
+                selection.selected
+            },
+            */
+            InterfaceIdentifier::PlayerEmpire => {
+                player_empire.empire
             },
             InterfaceIdentifier::CurrentSystemOrbiter(i) => {
-                if let Some(system) = selection.selected_system {
-                    if let Ok(star) = star_query.get(system) {
-                        if (i as usize) < star.orbiters.len() {
-                            return Some(star.orbiters[i as usize]);
-                        }
-                    }
-                }
+                selection.selected_system
+                    .and_then(|star_ent| star_query.get(star_ent).ok())
+                    .and_then(|star| if (i as usize) < star.orbiters.len() {
+                        Some(star.orbiters[i as usize])
+                    } else {
+                        None
+                    })
             }
-        }
-    }       
-    None
+        };
+    }
 }
+
 
 fn update_hovered(
     mut selection : ResMut<Selection>,
-    star_query : Query<&Star>,
     galaxy_selectable_query : Query<&GalaxySelectable,>,
     system_selectable_query : Query<&SystemSelectable>,
     selection_proxy_query : Query<&SelectionProxy>,
@@ -87,7 +105,7 @@ fn update_hovered(
         .iter()
         .flat_map(|(id,hashmap)| hashmap.iter().map(|data| (*id,*data.0,data.1.clone())))
     {
-        if let Some(proxy) = redirect_from_proxy(hovered_entity, &selection_proxy_query, &star_query, &selection) {
+        if let Some(proxy) = selection_proxy_query.get(hovered_entity).ok().and_then(|x| x.resolved_target) {
             selection.hovered = Some(proxy);
         }
 
@@ -133,7 +151,9 @@ fn update_selection (
         .filter(|pointer| pointer.event.button == PointerButton::Primary)
     {
         info!("handing pointer down event! frame: {}", frame_count.0);
-        let target = redirect_from_proxy(*target, &selection_proxy_query, &star_query, &prev_selection).unwrap_or(*target);
+        //let target = redirect_from_proxy(*target, &selection_proxy_query, &star_query, &prev_selection).unwrap_or(*target);
+        let target = selection_proxy_query.get(*target).ok().and_then(|x| x.resolved_target).unwrap_or(*target);
+
         pointer_down_list.insert(*pointer_id);
         if let Some(selected) = selection.selected {
             let target_can_deselect = no_deselect.get(target).is_err();
@@ -169,6 +189,10 @@ fn update_selection (
             selection.selected = Some(target);
             selection.selected_system = prev_selection.selected_system;
             info!("selecting a planet");
+        }
+        else {
+            selection.selected = Some(target);
+            info!("selecting something else...");
         }
     }
 

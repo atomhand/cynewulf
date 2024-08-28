@@ -3,6 +3,8 @@ use crate::galaxy::{Selection,GalaxyConfig};
 use bevy_mod_picking::prelude::*;
 use crate::prelude::*;
 use super::UiConsts;
+use crate::galaxy::selection::{SelectionProxy,InterfaceIdentifier};
+use crate::galaxy::Description;
 
 /// Marker to find the text entity so we can update it
 #[derive(Component)]
@@ -31,7 +33,6 @@ impl Plugin for SelectionPanelPlugin {
     }
 }
 
-use crate::galaxy::selection::{SelectionProxy,InterfaceIdentifier};
 
 fn setup_widget(
     mut commands: Commands,
@@ -69,7 +70,7 @@ fn setup_widget(
         for i in 0..GalaxyConfig::MAX_SYSTEM_BODIES {
             parent.spawn((
                 SelectionPanelTabRoot { slot : i as i32},
-                SelectionProxy{target:InterfaceIdentifier::CurrentSystemOrbiter(i as u32)},
+                SelectionProxy::new(InterfaceIdentifier::CurrentSystemOrbiter(i as u32)),
                 ButtonBundle {
                     background_color : Color::srgb(0.0,0.0,0.0).into(),
                     z_index: ZIndex::Global(i32::MAX),
@@ -129,44 +130,6 @@ fn setup_widget(
             });
         }
     });
-}
-
-use crate::galaxy::{Star,Description};
-
-fn widget_interact_system(
-    mut root_query: Query<(Option<&PickingInteraction>, &SelectionPanelTabRoot)>,
-    mut selection : ResMut<Selection>,
-    star_query : Query<&Star, Without<SelectionPanelTabHeader>>,
-) {
-    let Some(star_entity) = selection.selected_system else { return; };
-    let Ok(star) = star_query.get(star_entity) else { return; };
-    let star_and_orbiters = &star.orbiters;
-    /*/
-    let mut star_and_orbiters = Vec::<Entity>::new();
-    if let Some(star_entity) = selection.selected_system {
-        if let Ok(star) = star_query.get(star_entity) {
-            star_and_orbiters.insert(0, star_entity);
-            star_and_orbiters.extend_from_slice(star.orbiters.as_slice());
-        }
-    }
-    */
-
-    for(interaction, panel) in &mut root_query {
-        match interaction {
-            Some(PickingInteraction::Pressed) => {
-                if panel.slot < star_and_orbiters.len() as i32 {
-                    selection.selected = Some(star_and_orbiters[panel.slot as usize]);
-                    selection.selected_system = Some(star_and_orbiters[0]);
-                }
-            }
-            Some(PickingInteraction::Hovered) => {
-                if panel.slot < star_and_orbiters.len() as i32 {
-                    selection.hovered = Some(star_and_orbiters[panel.slot as usize]);
-                }
-            }
-            Some(PickingInteraction::None) | None => {}
-        }
-    }
 }
 
 fn update_widget_system(
@@ -243,7 +206,11 @@ fn update_widget_system(
                 style.display = Display::Flex;
 
                 *border_color = if Some(star_and_orbiters[panel.slot as usize]) == selection.hovered {
-                    Color::WHITE
+                    if Some(star_and_orbiters[panel.slot as usize]) == selection.selected {
+                        Color::srgb(1.0,80./255.,0.)
+                    } else {
+                        Color::WHITE
+                    }
                 } else if Some(star_and_orbiters[panel.slot as usize]) == selection.selected {
                     Color::srgb(1.0,165./255.,0.)
                 } else {

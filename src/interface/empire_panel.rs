@@ -4,6 +4,8 @@ use bevy_mod_picking::prelude::*;
 use crate::prelude::*;
 use super::UiConsts;
 
+use crate::galaxy::selection::{SelectionProxy,InterfaceIdentifier};
+
 /// Marker to find the text entity so we can update it
 #[derive(Component)]
 struct EmpirePanel {
@@ -48,7 +50,7 @@ fn setup_widget(
     )).id();
 
     let button = commands.spawn(
-        ButtonBundle {
+        (ButtonBundle {
             background_color : Color::srgb(0.0,0.0,0.0).into(),
             z_index: ZIndex::Global(i32::MAX),
             style: Style {
@@ -65,6 +67,7 @@ fn setup_widget(
             },
             ..Default::default()
         },
+        SelectionProxy::new(InterfaceIdentifier::PlayerEmpire),)
     ).push_children(&[label]).id();
 
     commands.spawn((
@@ -96,20 +99,33 @@ fn setup_widget(
 
 fn update_widget_system(
     mut label_query: Query<&mut Text>,
-    mut bg_query: Query<&mut BackgroundColor,(Without<Text>,Without<EmpirePanel>)>,
+    mut bg_query: Query<(&mut BackgroundColor,&mut BorderColor),(Without<Text>,Without<EmpirePanel>)>,
     panel_query : Query<&EmpirePanel,Without<Text>>,
     empires_query : Query<&Empire, (Without<Text>,Without<BackgroundColor>)>,
-    player_empire : Res<crate::galaxy::empire::PlayerEmpire>
+    player_empire : Res<crate::galaxy::empire::PlayerEmpire>,
+    selection : Res<Selection>
 ) {
-    if player_empire.is_changed() {
-        let Some(empire) = player_empire.empire else { return; };
-        let Ok(empire) = empires_query.get(empire) else { return; };
+    if player_empire.is_changed() || selection.is_changed() {
+        let Some(empire_ent) = player_empire.empire else { return; };
+        let Ok(empire) = empires_query.get(empire_ent) else { return; };
 
         let panel = panel_query.single();
-        let Ok(mut bg) = bg_query.get_mut(panel.button) else { return; };
+        let Ok((mut bg,mut border)) = bg_query.get_mut(panel.button) else { return; };
         let Ok(mut text) = label_query.get_mut(panel.title_text) else { return; };
 
         text.sections[0].value = empire.name.clone();
         *bg = empire.color.into();
+
+        *border = if Some(empire_ent) == selection.hovered {
+            if Some(empire_ent) == selection.selected {
+                Color::srgb(1.0,80./255.,0.)
+            } else {
+                Color::WHITE
+            }
+        } else if Some(empire_ent) == selection.selected {
+            Color::srgb(1.0,165./255.,0.)
+        } else {
+            Color::srgb(0.1,0.1,0.1)
+        }.into();
     }
 }
