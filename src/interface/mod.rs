@@ -17,6 +17,28 @@ impl UiConsts {
 
 pub struct InterfacePlugin;
 
+#[derive(Component)]
+struct UiSelectionHighlight;
+
+fn selection_proxy_highlight(
+    mut query : Query<(&mut BorderColor,&crate::galaxy::selection::SelectionProxy),With<UiSelectionHighlight>>,
+    selection : Res<crate::galaxy::Selection>
+) {
+    for (mut border, proxy) in query.iter_mut() {
+        *border = if proxy.resolved_target == selection.hovered {
+            if proxy.resolved_target== selection.selected {
+                Color::srgb(1.0,80./255.,0.)
+            } else {
+                Color::WHITE
+            }
+        } else if proxy.resolved_target == selection.selected {
+            Color::srgb(1.0,165./255.,0.)
+        } else {
+            Color::srgb(0.1,0.1,0.1)
+        }.into();
+    }
+}
+
 impl Plugin for InterfacePlugin {
     fn build(&self, app : &mut App) {
         app.add_plugins((
@@ -25,6 +47,7 @@ impl Plugin for InterfacePlugin {
             empire_panel::EmpirePanelPlugin
         ))
             .add_systems(Update, (
+                selection_proxy_highlight,
                 time_control::time_control_system,
                 star_label::draw_star_labels,
                 star_label::add_star_labels).after(crate::camera::camera_control_system));

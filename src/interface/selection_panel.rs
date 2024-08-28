@@ -50,7 +50,7 @@ fn setup_widget(
             z_index: ZIndex::Global(i32::MAX-1),
             style: Style {
                 flex_direction : FlexDirection::Column,
-                align_items : AlignItems::FlexEnd,
+                align_items : AlignItems::FlexStart,
                 position_type: PositionType::Absolute,
                 justify_content : JustifyContent::Center,
                 width: Val::Percent(20.),
@@ -71,6 +71,7 @@ fn setup_widget(
             parent.spawn((
                 SelectionPanelTabRoot { slot : i as i32},
                 SelectionProxy::new(InterfaceIdentifier::CurrentSystemOrbiter(i as u32)),
+                super::UiSelectionHighlight,
                 ButtonBundle {
                     background_color : Color::srgb(0.0,0.0,0.0).into(),
                     z_index: ZIndex::Global(i32::MAX),
@@ -79,7 +80,7 @@ fn setup_widget(
                         align_items : AlignItems::FlexStart,
                         position_type: PositionType::Relative,
                         justify_content : JustifyContent::FlexStart,
-                        width: Val::Percent(100.),
+                        width: Val::Auto,//(100.),
                         border : UiRect::all(Val::Px(4.0)),
                         padding: UiRect::all(Val::Px(2.0)),
                         margin : UiRect::all(Val::Px(1.0)),
@@ -133,7 +134,7 @@ fn setup_widget(
 }
 
 fn update_widget_system(
-    mut root_query: Query<(&mut Style, &mut BackgroundColor, &mut BorderColor, &SelectionPanelTabRoot)>,
+    mut root_query: Query<(&mut Style, &mut BackgroundColor, &SelectionPanelTabRoot)>,
     mut header_query: Query<(&mut Text,&SelectionPanelTabHeader), Without<SelectionPanelTabRoot>>,
     mut details_query: Query<(&mut Text, &mut Style, &SelectionPanelTabDetails), (Without<SelectionPanelTabRoot>,Without<SelectionPanelTabHeader>)>,
     selection : Res<Selection>,
@@ -143,7 +144,7 @@ fn update_widget_system(
 ) {
     if selection.is_changed() {
         let Some(star_entity) = selection.selected_system else {            
-            for (mut style, _,_,_) in root_query.iter_mut() {
+            for (mut style,_,_) in root_query.iter_mut() {
                 style.display = Display::None;
             }
             return;
@@ -198,13 +199,14 @@ fn update_widget_system(
                 }
             }
         }
-        for (mut style, mut bg, mut border_color, panel) in root_query.iter_mut() {
+        for (mut style, mut bg, panel) in root_query.iter_mut() {
             if panel.slot < len {
                 *bg = desc[panel.slot as usize].empire_color.unwrap_or(
                     Color::srgb(0.1,0.1,0.1)).into();
                                           
                 style.display = Display::Flex;
 
+                /*
                 *border_color = if Some(star_and_orbiters[panel.slot as usize]) == selection.hovered {
                     if Some(star_and_orbiters[panel.slot as usize]) == selection.selected {
                         Color::srgb(1.0,80./255.,0.)
@@ -216,6 +218,7 @@ fn update_widget_system(
                 } else {
                     Color::srgb(0.1,0.1,0.1)
                 }.into();
+                */
             } else {
                 style.display = Display::None;
             }

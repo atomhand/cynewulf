@@ -87,19 +87,30 @@ impl Plugin for OverlaysPlugin {
 
 
 fn update_overlays(
-    query : Query<(&StarGfxTag,&StarClaim),(With<Star>,Changed<StarClaim>)>,
+    query : Query<(&StarGfxTag,&StarClaim),(With<Star>)>,
     empire_query : Query<&Empire>,
     mut images : ResMut<Assets<Image>>,
     mut mats : ResMut<Assets<TerritoryOverlaysMaterial>>,
-    overlays_data : Res<OverlaysData>
+    overlays_data : Res<OverlaysData>,
+    selection : Res<crate::galaxy::Selection>,
+    time : Res<Time>
 ) {
     let image = images.get_mut(&overlays_data.image_handle).unwrap();
     for (tag,claim) in &query {
-        let col = if let Some(owner) = claim.owner {
-            empire_query.get(owner).unwrap().color
+        let col: [u8; 4] = if let Some(owner) = claim.owner {
+            let c = empire_query.get(owner).unwrap().color.to_srgba();
+            let t = (time.elapsed_seconds_wrapped() % 3.0) / 3.0;
+            let anim = f32::min(1.0 - t, t) * 2.0;
+            if claim.owner == selection.hovered {               
+                c.mix(&Color::WHITE.to_srgba(),anim)
+            } else if claim.owner == selection.selected {                
+                Color::WHITE.to_srgba()
+            } else {                
+                c
+            }
         } else {
-            Color::srgba(0.0,0.0,0.0,0.0)
-        }.to_srgba().to_u8_array();
+            Srgba::new(0.0,0.0,0.0,0.0)
+        }.to_u8_array();
 
         image.data[tag.id * 4..tag.id * 4+4].copy_from_slice(&col);
     }
