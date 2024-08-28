@@ -26,7 +26,7 @@ pub fn place_star_empires(mut commands : Commands,
     mut used_planet_names : ResMut<super::markov_chain::UsedPlanetNames>,
     mut player_empire : ResMut<crate::galaxy::empire::PlayerEmpire>
 ) {
-    let num_empires = 10;
+    let num_empires = 24;
 
     let mut claimed_systems : HashSet<Entity> = HashSet::new();
 
@@ -74,7 +74,6 @@ pub fn place_star_empires(mut commands : Commands,
 
                 claimed_systems.insert(star_entity);
 
-                // TEMP - Spawn a fleet too for luck
                 commands.spawn(crate::galaxy::fleet::FleetBundle::new(new_empire, star.node_id));
             }
         }

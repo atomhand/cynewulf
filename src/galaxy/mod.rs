@@ -24,7 +24,7 @@ mod hypernet;
 pub use hypernet::Hypernet;
 
 pub mod colony;
-pub use colony::{StarClaim,Colony,Economy};
+pub use colony::{StarClaim,Colony};
 
 pub mod empire;
 pub use empire::Empire;

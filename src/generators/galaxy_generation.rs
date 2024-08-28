@@ -61,7 +61,11 @@ pub fn setup_stars(mut commands : Commands,
         let is_enabled = hypernet.graph.edges(node_id).count() > 0;
 
         if is_enabled {
-            let mut star = Star::new(&mut starname_gen, node_id.index() as u32, star_pos, rng.gen_range(0.5..4.0)*rng.gen_range(0.5..4.0));
+            let mut star = Star::new(
+                &mut starname_gen, 
+                node_id.index() as u32, star_pos, 
+                f32::sqrt(rng.gen_range(0.25..12.0))            
+            );
 
             let rad = star.get_scaled_radius();
             let starname = star.name.clone();
