@@ -39,27 +39,24 @@ impl FleetBundle {
     }
 }
 
-use crate::camera::{CameraSettings,CameraMode};
+use crate::camera::{CameraSettings,CameraMode,CameraMain};
 
 pub fn fleet_preview_gizmos(
-    nav_query : Query<(&mut NavPosition, &Fleet)>,
+    nav_query : Query<(&NavPosition, &Fleet)>,
     empire_query : Query<&Empire>,
     hypernet : Res<Hypernet>,
     camera_settings : Res<CameraSettings>,
+    camera : Query<&CameraMain>,
     mut gizmos : Gizmos
 ) {
-    match camera_settings.camera_mode {
-        CameraMode::Galaxy => {
-            for (nav,fleet) in nav_query.iter() {
-                let empire = empire_query.get(fleet.owner).unwrap();
-                gizmos.sphere(nav.galaxy_view_translation(&hypernet), Quat::IDENTITY, 1.0, empire.color);
-            }
-        },
-        CameraMode::Star => {
-            for (nav,fleet) in nav_query.iter() {
-                let empire = empire_query.get(fleet.owner).unwrap();
-                gizmos.sphere(nav.system_view_translation(&hypernet), Quat::IDENTITY, GalaxyConfig::SOLAR_RADIUS, empire.color);
-            }
-        }
+    let cam = camera.get_single().unwrap();
+    let transition = cam.adjusted_mode_transition();
+    for (nav,fleet) in nav_query.iter() {
+        let empire = empire_query.get(fleet.owner).unwrap();
+        let galaxy = nav.galaxy_view_translation(&hypernet);
+        let system = nav.system_view_translation(&hypernet);
+
+        let scale = f32::lerp(1.0,GalaxyConfig::SOLAR_RADIUS, transition);
+        gizmos.sphere(galaxy.lerp(system,transition), Quat::IDENTITY, scale, empire.color);
     }
 }
