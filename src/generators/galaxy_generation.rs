@@ -80,12 +80,9 @@ pub fn setup_stars(mut commands : Commands,
                         Description::planet(format!("{} {}", starname, planet_identifier))
                     )).id()
                 );
-            }
-    
-            star.orbiters = planets.clone();
+            }    
     
             let parent = commands.spawn((
-                star,
                 StarClaim {
                     owner : None
                 },
@@ -98,9 +95,12 @@ pub fn setup_stars(mut commands : Commands,
                 VisibilityBundle::default()
             )).id();
 
+            star.orbiters.push(parent);
+            star.orbiters.extend_from_slice(planets.as_slice());
+
             hypernet.graph.node_weight_mut(node_id).unwrap().star = parent;
     
-            commands.entity(parent).push_children(&planets);
+            commands.entity(parent).insert(star).push_children(&planets);
         } else {
             commands.spawn((
                 OverlaysTriangulationVertex{},

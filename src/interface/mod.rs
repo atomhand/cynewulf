@@ -9,9 +9,13 @@ mod empire_panel;
 
 mod hud;
 
-pub struct InterfacePlugin;
+struct UiConsts;
 
-struct UIConsts;
+impl UiConsts {
+    const STANDARD_UI_FONT_SIZE : f32 = 20.0;
+}
+
+pub struct InterfacePlugin;
 
 impl Plugin for InterfacePlugin {
     fn build(&self, app : &mut App) {

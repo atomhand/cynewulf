@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use crate::galaxy::{Selection,GalaxyConfig};
 use bevy_mod_picking::prelude::*;
 use crate::prelude::*;
+use super::UiConsts;
 
 /// Marker to find the text entity so we can update it
 #[derive(Component)]
@@ -19,26 +20,27 @@ impl Plugin for EmpirePanelPlugin {
     }
 }
 
-fn quick_text(font_size : f32, text : String) -> TextSection {
-    TextSection {
-        value: text,
-        style: TextStyle {
-            font_size: font_size,
-            color: Color::WHITE,
-            ..default()
-        }
-    }
-}
-
 fn setup_widget(
     mut commands: Commands,
 ) {
+    let text_style = TextStyle {
+        font_size: UiConsts::STANDARD_UI_FONT_SIZE,
+        color: Color::WHITE,
+        ..default()
+    };
+
     let label = commands.spawn((
         TextBundle {
             background_color : Color::srgba(0.2,0.2,0.2, 0.5).into(),
             text: Text::from_sections([
-                quick_text(16.0,"".into()),
-                quick_text(16.0, " Empire".into()),
+                TextSection {
+                    value: "".into(),
+                    style : text_style.clone()
+                },
+                TextSection {
+                    value: " Empire".into(),
+                    style : text_style.clone()
+                },
             ]),
             ..Default::default()
         },
@@ -54,7 +56,7 @@ fn setup_widget(
                 align_items : AlignItems::FlexStart,
                 position_type: PositionType::Relative,
                 justify_content : JustifyContent::FlexStart,
-                width: Val::Px(256.),
+                width: Val::Percent(100.),
                 border : UiRect::all(Val::Px(4.0)),
                 padding: UiRect::all(Val::Px(2.0)),
                 margin : UiRect::all(Val::Px(1.0)),
@@ -78,7 +80,7 @@ fn setup_widget(
                 align_items : AlignItems::FlexEnd,
                 position_type: PositionType::Absolute,
                 justify_content : JustifyContent::Center,
-                width: Val::Auto,
+                width: Val::Percent(20.0),
                 height: Val::Auto,
                 left: Val::Percent(1.),
                 bottom: Val::Auto,

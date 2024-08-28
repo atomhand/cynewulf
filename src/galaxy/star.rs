@@ -10,7 +10,7 @@ pub struct OverlaysTriangulationVertex {
 pub struct Star {
     pub pos : Vec3,
     pub node_id : u32,
-    pub orbiters : Vec::<Entity>,
+    pub orbiters : Vec::<Entity>, // includes self id at index [0]
     pub mass : f32, // in stellar masses
     pub name : String,
 }

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use crate::galaxy::{Selection,GalaxyConfig};
 use bevy_mod_picking::prelude::*;
 use crate::prelude::*;
+use super::UiConsts;
 
 /// Marker to find the text entity so we can update it
 #[derive(Component)]
@@ -21,72 +22,67 @@ struct SelectionPanelTabDetails {
     slot : i32
 }
 
-
 pub struct SelectionPanelPlugin;
 
 impl Plugin for SelectionPanelPlugin {
     fn build(&self, app : &mut App) {
         app.add_systems(Startup,setup_widget)
-        .add_systems(Update,(widget_interact_system,update_widget_system).chain());
+        .add_systems(PostUpdate,update_widget_system);
     }
 }
+
+use crate::galaxy::selection::{SelectionProxy,InterfaceIdentifier};
 
 fn setup_widget(
     mut commands: Commands,
 ) {
+    let text_style = TextStyle {
+        font_size: UiConsts::STANDARD_UI_FONT_SIZE,
+        color: Color::WHITE,
+        ..default()
+    };
+
     commands.spawn((
         SelectionPanel,
         NodeBundle {
-            // give it a dark background for readability
             background_color: BackgroundColor(Color::BLACK.with_alpha(1.0)),
-            // make it "always on top" by setting the Z index to maximum
-            // we want it to be displayed over all other UI
             z_index: ZIndex::Global(i32::MAX-1),
             style: Style {
                 flex_direction : FlexDirection::Column,
                 align_items : AlignItems::FlexEnd,
                 position_type: PositionType::Absolute,
                 justify_content : JustifyContent::Center,
-                width: Val::Auto,
+                width: Val::Percent(20.),
                 height: Val::Auto,
-                //height: Val::Px(48.),
-                // position it at the top-right corner
-                // 1% away from the top window edge
                 left: Val::Percent(1.),
                 bottom: Val::Percent(1.),
                 top: Val::Auto,
                 right: Val::Auto,
-                // set bottom/left to Auto, so it can be
-                // automatically sized depending on the text
-                // give it some padding for readability
                 padding: UiRect::all(Val::Px(1.0)),
                 ..Default::default()
             },
             ..Default::default()
         },
+        NoDeselect
     ))
     .with_children(|parent| {
         for i in 0..GalaxyConfig::MAX_SYSTEM_BODIES {
             parent.spawn((
                 SelectionPanelTabRoot { slot : i as i32},
+                SelectionProxy{target:InterfaceIdentifier::CurrentSystemOrbiter(i as u32)},
                 ButtonBundle {
-                    // give it a dark background for readability
                     background_color : Color::srgb(0.0,0.0,0.0).into(),
-                    // make it "always on top" by setting the Z index to maximum
-                    // we want it to be displayed over all other UI
                     z_index: ZIndex::Global(i32::MAX),
                     style: Style {
                         flex_direction : FlexDirection::Column,
                         align_items : AlignItems::FlexStart,
                         position_type: PositionType::Relative,
                         justify_content : JustifyContent::FlexStart,
-                        width: Val::Px(256.),
+                        width: Val::Percent(100.),
                         border : UiRect::all(Val::Px(4.0)),
-                        // give it some padding for readability
                         padding: UiRect::all(Val::Px(2.0)),
                         margin : UiRect::all(Val::Px(1.0)),
-                        height : Val::Auto,
-    
+                        height : Val::Auto,    
                         ..Default::default()
                     },
                     ..Default::default()
@@ -98,23 +94,14 @@ fn setup_widget(
                     SelectionPanelTabHeader { slot : i as i32},
                     TextBundle {
                         background_color : Color::srgba(0.2,0.2,0.2, 0.5).into(),
-                        // use two sections, so it is easy to update just the number
                         text: Text::from_sections([
                             TextSection {
                                 value: label.into(),
-                                style: TextStyle {
-                                    font_size: 16.0,
-                                    color: Color::WHITE,
-                                    ..default()
-                                }
+                                style: text_style.clone()
                             },
                             TextSection {
                                 value: " N/A".into(),
-                                style: TextStyle {
-                                    font_size: 16.0,
-                                    color: Color::WHITE,
-                                    ..default()
-                                }
+                                style : text_style.clone()
                             },
                         ]),
                         ..Default::default()
@@ -125,23 +112,14 @@ fn setup_widget(
                     SelectionPanelTabDetails { slot : i as i32},
                     TextBundle {
                         background_color : Color::srgb(0.2,0.2,0.2).into(),
-                        // use two sections, so it is easy to update just the number
                         text: Text::from_sections([
                             TextSection {
                                 value: "".into(),
-                                style: TextStyle {
-                                    font_size: 16.0,
-                                    color: Color::WHITE,
-                                    ..default()
-                                }
+                                style : text_style.clone()
                             },
                             TextSection {
                                 value: " N/A".into(),
-                                style: TextStyle {
-                                    font_size: 16.0,
-                                    color: Color::WHITE,
-                                    ..default()
-                                }
+                                style : text_style.clone()
                             },
                         ]),
                         ..Default::default()
@@ -160,6 +138,10 @@ fn widget_interact_system(
     mut selection : ResMut<Selection>,
     star_query : Query<&Star, Without<SelectionPanelTabHeader>>,
 ) {
+    let Some(star_entity) = selection.selected_system else { return; };
+    let Ok(star) = star_query.get(star_entity) else { return; };
+    let star_and_orbiters = &star.orbiters;
+    /*/
     let mut star_and_orbiters = Vec::<Entity>::new();
     if let Some(star_entity) = selection.selected_system {
         if let Ok(star) = star_query.get(star_entity) {
@@ -167,6 +149,7 @@ fn widget_interact_system(
             star_and_orbiters.extend_from_slice(star.orbiters.as_slice());
         }
     }
+    */
 
     for(interaction, panel) in &mut root_query {
         match interaction {
@@ -195,9 +178,16 @@ fn update_widget_system(
     star_query : Query<&Star, Without<SelectionPanelTabHeader>>,
     planet_colony_query : Query<(&Planet,Option<&Colony>), Without<SelectionPanelTabHeader>>,
 ) {
-
     if selection.is_changed() {
-
+        let Some(star_entity) = selection.selected_system else {            
+            for (mut style, _,_,_) in root_query.iter_mut() {
+                style.display = Display::None;
+            }
+            return;
+        };
+        let Ok(star) = star_query.get(star_entity) else { return; };
+        let star_and_orbiters = &star.orbiters;
+        /*
         let mut star_and_orbiters = Vec::<Entity>::new();
         if let Some(star_entity) = selection.selected_system {
             if let Ok(star) = star_query.get(star_entity) {
@@ -205,17 +195,14 @@ fn update_widget_system(
                 star_and_orbiters.extend_from_slice(star.orbiters.as_slice());
             }
         }
+        */
 
-        let mut desc = Vec::<&Description>::new();
+        let desc = star_and_orbiters.iter().map(|x| description_query.get(*x).unwrap()).collect::<Vec<_>>();
 
-        for entity in &star_and_orbiters {
-            desc.push(description_query.get(*entity).unwrap());
-        }
         let len = star_and_orbiters.len() as i32;
 
         for (mut text, panel) in header_query.iter_mut() {
             if panel.slot < len {
-
                 text.sections[0].value = format!("{} ", desc[panel.slot as usize].name);
                 text.sections[0].style.color = Color::WHITE;
 
@@ -232,56 +219,39 @@ fn update_widget_system(
         for (mut text, mut style, panel) in details_query.iter_mut() {
             if panel.slot < len {
                 style.display = Display::None;
-                if let Some(selected) = selection.selected {
-                    if star_and_orbiters[panel.slot as usize] == selected {
-                        // try grab colony
-                        text.sections[1].value = format!("Panel Details for planet {}", desc[panel.slot as usize].name);
-                        if let Ok((_planet,colony)) = planet_colony_query.get(star_and_orbiters[panel.slot as usize]) {
-                            if let Some(colony) = colony {
-                                text.sections[1].value = format!("{}", colony.economy);
-                            }
+                if Some(star_and_orbiters[panel.slot as usize]) == selection.selected {
+                    // try grab colony
+                    text.sections[1].value = format!("Panel Details for planet {}", desc[panel.slot as usize].name);
+                    if let Ok((_planet,colony)) = planet_colony_query.get(star_and_orbiters[panel.slot as usize]) {
+                        if let Some(colony) = colony {
+                            text.sections[1].value = format!("{}", colony.economy);
                         }
-
-                        text.sections[0].style.color = Color::srgb(0.25,0.25,1.0);
-                        text.sections[1].style.color = Color::srgb(0.25,0.25,1.0);
-
-                        style.display = Display::Flex;
                     }
+
+                    text.sections[0].style.color = Color::srgb(0.25,0.25,1.0);
+                    text.sections[1].style.color = Color::srgb(0.25,0.25,1.0);
+
+                    style.display = Display::Flex;
                 }
             }
         }
         for (mut style, mut bg, mut border_color, panel) in root_query.iter_mut() {
             if panel.slot < len {
-                let mut col = Color::srgb(0.1,0.1,0.1);
-
-                *bg = if let Some(owner_color) = desc[panel.slot as usize].empire_color {
-                    owner_color.into()
-                } else {
-                    Color::srgb(0.1,0.1,0.1).into()
-                };
-
-
-                if let Some(hovered) = selection.hovered {
-                    if star_and_orbiters[panel.slot as usize] == hovered {
-                        col = Color::WHITE;
-                    }
-                }
-                if let Some(selected) = selection.selected {
-                    if star_and_orbiters[panel.slot as usize] == selected {
-                        col = Color::srgb(1.0,165./255.,0.);
-                    }
-                }
-
+                *bg = desc[panel.slot as usize].empire_color.unwrap_or(
+                    Color::srgb(0.1,0.1,0.1)).into();
+                                          
                 style.display = Display::Flex;
 
-                *border_color = col.into();
-
-                //*visibility = Visibility::Visible;
+                *border_color = if Some(star_and_orbiters[panel.slot as usize]) == selection.hovered {
+                    Color::WHITE
+                } else if Some(star_and_orbiters[panel.slot as usize]) == selection.selected {
+                    Color::srgb(1.0,165./255.,0.)
+                } else {
+                    Color::srgb(0.1,0.1,0.1)
+                }.into();
             } else {
                 style.display = Display::None;
-                //*visibility = Visibility::Hidden;
             }
-            //style.height = Val::Auto;
         }
     }
 }
