@@ -1,11 +1,14 @@
 use bevy::prelude::*;
+use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
+use bevy::diagnostic::DiagnosticsStore;
 
 pub struct TimeWidgetPlugin;
 
 impl Plugin for TimeWidgetPlugin {
     fn build(&self, app : &mut App) {
         app.add_systems(Startup, setup_widget)
-            .add_systems(Update,update_widget_system);
+            .add_systems(Update,update_widget_system)
+            .add_plugins(FrameTimeDiagnosticsPlugin::default());
     }
 }
 
@@ -48,7 +51,7 @@ fn setup_widget(
         },
     )).id();
 
-    for i in 0..2 {
+    for i in 0..3 {
         // create our UI root node
         // this is the wrapper/container for the text
         let root = commands.spawn((
@@ -70,6 +73,7 @@ fn setup_widget(
         let label = match i {
             0 => "Date: ",
             1 => "Speed: ",
+            2 => "FPS: ",
             _ => "Error: "
         };
         let text_fps = commands.spawn((
@@ -114,8 +118,13 @@ use crate::simulation::{SimulationMode, SimulationSettings};
 fn update_widget_system(
     sim_time : Res<SimTime>,
     sim_settings : Res<SimulationSettings>,
+    diagnostics: Res<DiagnosticsStore>,
     mut query: Query<(&mut Text, &SimulationWidget)>,
 ) {
+    let fps = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS).and_then(|fps| fps.smoothed()).unwrap_or(0.0);
+    let frame_time = diagnostics.get(&FrameTimeDiagnosticsPlugin::FRAME_TIME).and_then(|fps| fps.smoothed()).unwrap_or(0.0);
+    let fps_str = format!("{fps:.1} ({frame_time:.2} ms)");
+
     let (day,month,year) = sim_time.to_daymonthyear();
     //let dmy = format!("{}/{}/{}", day, month, year);
     let speed = if sim_settings.paused {
@@ -133,6 +142,7 @@ fn update_widget_system(
         let text_val = match widget.ui_slot {
             0 => format!("{}/{}/{}", day, month, year),
             1 => speed.into(),
+            2 => fps_str.clone(),
             _ => "".into()
         };
 
