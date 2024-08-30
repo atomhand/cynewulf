@@ -8,9 +8,37 @@ pub trait Pathfinding {
     fn find_path_without_direct_edge(&self, a : u32, b : u32) -> Option<Vec<u32>>;
 
     fn find_path(&self, a : u32, b : u32) -> Option<Vec<u32>>;
+
+    fn dijkstra(&self, input_points : &Vec<u32>) -> Vec<Option<i32>>;
 }
 
 use std::cmp::Ordering;
+#[derive(Eq)]
+struct DijkstraNode {
+    star : u32,
+    cost : i32,
+}
+impl DijkstraNode {
+    fn score(&self) -> i32 {
+        -self.cost
+    }
+}
+impl PartialEq for DijkstraNode {
+    fn eq(&self, other : &Self) -> bool {
+        self.score().eq(&other.score())
+    }
+}
+impl PartialOrd for DijkstraNode {
+    fn partial_cmp(&self, other : &Self) -> Option<Ordering> {
+        self.score().partial_cmp(&other.score())
+    }
+}
+
+impl Ord for DijkstraNode {
+    fn cmp(&self, other : &Self) -> Ordering {
+        self.score().cmp(&other.score())
+    }
+}
 
 #[derive(Eq)]
 struct PathfindingNode {
@@ -71,8 +99,8 @@ impl Pathfinding for super::Hypernet {
     
             for n in self.graph.neighbors(top.star.into()) {
                 if top.star == star_a && n.index() as u32 == star_b { continue; }
-                let e = self.graph.edge_weight(self.graph.find_edge(top.star.into(),n).unwrap()).unwrap();
                 if !closed[n.index()] {
+                    let e = self.graph.edge_weight(self.graph.find_edge(top.star.into(),n).unwrap()).unwrap();
                     closed[n.index()] = true;
                     open.push(PathfindingNode::new(n.index() as u32, top.star, top.origin_dist + e.length,dest_pos, &self));
                 }
@@ -116,8 +144,8 @@ impl Pathfinding for super::Hypernet {
             }
     
             for n in self.graph.neighbors(top.star.into()) {
-                let e = self.graph.edge_weight(self.graph.find_edge(top.star.into(),n).unwrap()).unwrap();
                 if !closed[n.index()] {
+                    let e = self.graph.edge_weight(self.graph.find_edge(top.star.into(),n).unwrap()).unwrap();
                     closed[n.index()] = true;
                     open.push(PathfindingNode::new(n.index() as u32, top.star, top.origin_dist + e.length,dest_pos, &self));
                 }
@@ -139,5 +167,30 @@ impl Pathfinding for super::Hypernet {
                 return None;
             }
         }
+    }
+    
+    ///
+    /// Returns vec of distances corresponding to hypernet node ids
+    fn dijkstra(&self, input_points : &Vec<u32>) -> Vec<Option<i32>> {
+        let (n,_) = self.graph.capacity();        
+        let mut open = BinaryHeap::new();
+        let mut result = vec![None;n];
+
+        for p in input_points {
+            open.push(DijkstraNode{star : *p, cost : 0});
+            result[*p as usize] = Some(0);
+        }
+    
+        while let Some(top) = open.pop() {    
+            for n in self.graph.neighbors(top.star.into()) {
+                if result[n.index()] == None {
+                    let e = self.graph.edge_weight(self.graph.find_edge(top.star.into(),n).unwrap()).unwrap();
+                    result[n.index()] = Some(top.cost+e.length);
+                    open.push(DijkstraNode { star: n.index() as u32, cost : top.cost+e.length});
+                }
+            }
+        }
+    
+        return result;
     }
 }

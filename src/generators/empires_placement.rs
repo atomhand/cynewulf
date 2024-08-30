@@ -24,25 +24,34 @@ pub fn place_star_empires(mut commands : Commands,
     mut star_query : Query<(Entity,&Star, &mut StarClaim)>,
     planet_query : Query<&Planet, Without<Star>>,
     mut used_planet_names : ResMut<super::markov_chain::UsedPlanetNames>,
-    mut player_empire : ResMut<crate::galaxy::empire::PlayerEmpire>
+    mut player_empire : ResMut<crate::galaxy::empire::PlayerEmpire>,
+    hypernet : Res<Hypernet>
 ) {
     let num_empires = 24;
 
+    let mut claimed_ids = Vec::new();
     let mut claimed_systems : HashSet<Entity> = HashSet::new();
 
     let mut rng = thread_rng();
 
     for i in 0..num_empires {
-        let mut best : Option<(Entity,Entity,f32)> = None;
+        let mut best : Option<(Entity,Entity,i32)> = None;
+
+        let dijkstra = hypernet.dijkstra(&claimed_ids);
 
         for (star_entity,star, _star_claim) in &star_query {
             if claimed_systems.contains(&star_entity) { continue; }
+
+            let dist = dijkstra[star.node_id as usize];
+
+            let star_score = dist.unwrap_or(1);
 
             for planet_entity in &star.orbiters {
                 if let Ok(planet) = planet_query.get(*planet_entity) {
 
                     // TODO - Rate planets on a factor that matters..
-                    let score = rng.gen_range(0.01..1.0) / planet.get_visual_radius();
+                    let score = star_score;
+                    //rng.gen_range(0.01..1.0) / planet.get_visual_radius();
                     if let Some((_,_,old_score)) = best {
                         if score > old_score {
                             best = Some((*planet_entity,star_entity,score));
@@ -55,7 +64,7 @@ pub fn place_star_empires(mut commands : Commands,
         }
 
         if let Some((planet_entity,star_entity,score)) = best {
-            if score > 0.0 {
+            if score > 0 {
                 let new_empire = commands.spawn(Empire::random(&mut rng, &mut used_planet_names)).id();
 
                 // ~~ temp
@@ -73,6 +82,7 @@ pub fn place_star_empires(mut commands : Commands,
                 });
 
                 claimed_systems.insert(star_entity);
+                claimed_ids.push(star.node_id);
 
                 commands.spawn(crate::galaxy::fleet::FleetBundle::new(new_empire, star.node_id));
             }
