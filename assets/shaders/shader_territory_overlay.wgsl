@@ -1,17 +1,18 @@
 #import bevy_pbr::mesh_functions::{get_world_from_local, mesh_position_local_to_clip}
 
 
-@group(2) @binding(1) var material_color_texture: texture_2d<f32>;
-@group(2) @binding(2) var material_color_sampler: sampler;
-@group(2) @binding(3) var star_position_texture: texture_2d<f32>;
-@group(2) @binding(4) var star_position_sampler: sampler;
+struct StarFormat {
+    pos : vec4<f32>,
+    col : vec4<f32>
+}
+
+@group(2) @binding(1) var<storage> star_data_array: array<StarFormat>;
 
 struct Vertex {
     @builtin(instance_index) instance_index: u32,
     @location(0) position: vec3<f32>,
-    @location(1) star_id: vec3<u32>,
+    @location(1) @interpolate(flat) star_id: vec3<u32>,
     @location(2) barycentric: vec3<f32>,
-    @location(3) star_distance: vec3<f32>,
 }
 
 struct VertexOutput {
@@ -133,30 +134,17 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let p = input.world_pos.xz;
 
     // star colours
-    let a = textureSample(material_color_texture,material_color_sampler, (vec2<f32>(f32(input.star_id.x % 128), f32(input.star_id.x / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
-    let b = textureSample(material_color_texture,material_color_sampler, (vec2<f32>(f32(input.star_id.y % 128), f32(input.star_id.y / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
-    let c = textureSample(material_color_texture,material_color_sampler, (vec2<f32>(f32(input.star_id.z % 128), f32(input.star_id.z / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
+    //let a = textureSample(material_color_texture,material_color_sampler, (vec2<f32>(f32(input.star_id.x % 128), f32(input.star_id.x / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
+    //let b = textureSample(material_color_texture,material_color_sampler, (vec2<f32>(f32(input.star_id.y % 128), f32(input.star_id.y / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
+    //let c = textureSample(material_color_texture,material_color_sampler, (vec2<f32>(f32(input.star_id.z % 128), f32(input.star_id.z / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
 
-    if all(max(a,max(b,c)) == vec4(0.0)) {
+    let a = star_data_array[input.star_id.x];
+    let b = star_data_array[input.star_id.y];
+    let c = star_data_array[input.star_id.z];
+
+    if all(max(a.col,max(b.col,c.col)) == vec4(0.0)) {
         return vec4(0.0);
     }
-
-    var col : array<vec4<f32>,3> = array (
-        a,
-        b,
-        c
-    );
-
-    // star positions
-    let a_pos = textureSample(star_position_texture,star_position_sampler, (vec2<f32>(f32(input.star_id.x % 128), f32(input.star_id.x / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
-    let b_pos = textureSample(star_position_texture,star_position_sampler, (vec2<f32>(f32(input.star_id.y % 128), f32(input.star_id.y / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
-    let c_pos = textureSample(star_position_texture,star_position_sampler, (vec2<f32>(f32(input.star_id.z % 128), f32(input.star_id.z / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
-
-    var pos : array<vec4<f32>,3> = array(
-        a_pos,
-        b_pos,
-        c_pos
-    );
 
     // NOTE FOR POTENTIAL OPTIMISATION
     // Process
@@ -207,40 +195,40 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     */
 
     var distance = vec3<f32>(
-        sd_circle(p, a_pos.xy, a_pos.w / 2.0),
-        sd_circle(p, b_pos.xy, b_pos.w / 2.0),
-        sd_circle(p, c_pos.xy, c_pos.w / 2.0)
+        sd_circle(p, a.pos.xy, a.pos.w / 2.0),
+        sd_circle(p, b.pos.xy, b.pos.w / 2.0),
+        sd_circle(p, c.pos.xy, c.pos.w / 2.0)
     );
     
-    if all(b==c)
+    if all(b.col==c.col)
     {
-        let bf = star_adjusted_distance_factor(b_pos,c_pos,a_pos) / 2.0;
-        let cf = star_adjusted_distance_factor(c_pos,b_pos,a_pos) / 2.0;
+        let bf = star_adjusted_distance_factor(b.pos,c.pos,a.pos) / 2.0;
+        let cf = star_adjusted_distance_factor(c.pos,b.pos,a.pos) / 2.0;
         let f = min(bf,cf);
 
         distance.y = min(distance.z,distance.y);
         distance.z = 1000.0;
-        distance.y = min(distance.y, sd_uneven_capsule(p, b_pos.xy, c_pos.xy, f, f));
+        distance.y = min(distance.y, sd_uneven_capsule(p, b.pos.xy, c.pos.xy, f, f));
     }
-    if all(a==b)
+    if all(a.col==b.col)
     {
-        let af = star_adjusted_distance_factor(a_pos,b_pos,c_pos) / 2.0;
-        let bf = star_adjusted_distance_factor(b_pos,a_pos,c_pos) / 2.0;
+        let af = star_adjusted_distance_factor(a.pos,b.pos,c.pos) / 2.0;
+        let bf = star_adjusted_distance_factor(b.pos,a.pos,c.pos) / 2.0;
         let f = min(af,bf);
 
         distance.x = min(distance.x,distance.y);
-        distance.x = min(distance.x, sd_uneven_capsule(p, a_pos.xy, b_pos.xy, f, f));
+        distance.x = min(distance.x, sd_uneven_capsule(p, a.pos.xy, b.pos.xy, f, f));
         distance.y = 1000.0;
     }
-    if all(a==c)
+    if all(a.col==c.col)
     {
-        let af = star_adjusted_distance_factor(a_pos,c_pos,b_pos) / 2.0;
-        let cf = star_adjusted_distance_factor(c_pos,a_pos,b_pos) / 2.0;
+        let af = star_adjusted_distance_factor(a.pos,c.pos,b.pos) / 2.0;
+        let cf = star_adjusted_distance_factor(c.pos,a.pos,b.pos) / 2.0;
         let f = min(af,cf);
 
         distance.x = min(distance.x,distance.z);
         distance.z = 1000.0;
-        distance.x = min(distance.x, sd_uneven_capsule(p, a_pos.xy, c_pos.xy, f, f));
+        distance.x = min(distance.x, sd_uneven_capsule(p, a.pos.xy, c.pos.xy, f, f));
     }
 
     let edge_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(16.0), -distance);
@@ -248,5 +236,5 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
 
     let c_weight = saturate(min(edge_inner,edge_outer));
 
-    return a * c_weight.x + b * c_weight.y + c * c_weight.z;
+    return a.col * c_weight.x + b.col * c_weight.y + c.col * c_weight.z;
 }

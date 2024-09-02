@@ -14,16 +14,19 @@ use bevy::{
         render_resource::*,
     },
 };
+// https://docs.rs/bevy/latest/bevy/pbr/prelude/trait.Material.html
 
+#[derive(ShaderType,Default,Debug,Clone)]
+#[repr(C)]
+struct StarFormat {
+    pos : Vec4,
+    color : Vec4,
+}
 
 #[derive(Asset,TypePath,AsBindGroup,Debug,Clone)]
 struct TerritoryOverlaysMaterial {
-    #[texture(1)]
-    #[sampler(2)]
-    color_texture: Option<Handle<Image>>,
-    #[texture(3)]
-    #[sampler(4)]
-    star_position_texture: Option<Handle<Image>>,
+    #[storage(1, read_only)]
+    star_data_buffer : Vec<StarFormat>,
     alpha_mode : AlphaMode,
 }
 
@@ -32,9 +35,6 @@ const ATTRIBUTE_BARYCENTRIC: MeshVertexAttribute =
 
 const ATTRIBUTE_STARID: MeshVertexAttribute =
     MeshVertexAttribute::new("StarID", 988540917, VertexFormat::Uint32x3);
-
-const ATTRIBUTE_STARDIST: MeshVertexAttribute =
-    MeshVertexAttribute::new("StarDist", 23642678092, VertexFormat::Float32x3);
 
 impl Material for TerritoryOverlaysMaterial {
     fn vertex_shader() -> ShaderRef {
@@ -53,7 +53,6 @@ impl Material for TerritoryOverlaysMaterial {
             Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
             ATTRIBUTE_STARID.at_shader_location(1),
             ATTRIBUTE_BARYCENTRIC.at_shader_location(2),
-            ATTRIBUTE_STARDIST.at_shader_location(3),
         ])?;
         descriptor.vertex.buffers = vec![vertex_layout];
         Ok(())
@@ -71,7 +70,6 @@ struct StarGfxTag {
 #[derive(Resource)]
 struct OverlaysData {
     _mesh_handle : Handle<Mesh>,
-    image_handle : Handle<Image>,
     material_handle : Handle<TerritoryOverlaysMaterial>
 }
 
@@ -85,19 +83,18 @@ impl Plugin for OverlaysPlugin {
     }
 }
 
-
 fn update_overlays(
-    query : Query<(&StarGfxTag,&StarClaim),(With<Star>)>,
+    query : Query<(&StarGfxTag,&StarClaim),With<Star>>,
     empire_query : Query<&Empire>,
-    mut images : ResMut<Assets<Image>>,
     mut mats : ResMut<Assets<TerritoryOverlaysMaterial>>,
     overlays_data : Res<OverlaysData>,
     selection : Res<crate::galaxy::Selection>,
     time : Res<Time>
 ) {
-    let image = images.get_mut(&overlays_data.image_handle).unwrap();
+    let Some(mat) = mats.get_mut(&overlays_data.material_handle) else { return; };
+
     for (tag,claim) in &query {
-        let col: [u8; 4] = if let Some(owner) = claim.owner {
+        let col = if let Some(owner) = claim.owner {
             let c = empire_query.get(owner).unwrap().color.to_srgba();
             let t = (time.elapsed_seconds_wrapped() % 2.0) / 2.0;
             let anim = f32::sin(t * 2.0 * std::f32::consts::PI) * 0.5 + 0.5;
@@ -110,13 +107,10 @@ fn update_overlays(
             }
         } else {
             Srgba::new(0.0,0.0,0.0,0.0)
-        }.to_u8_array();
+        };
 
-        image.data[tag.id * 4..tag.id * 4+4].copy_from_slice(&col);
+        mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
     }
-
-    // this marks the material as changed so that the texture update is registered
-    mats.get_mut(&overlays_data.material_handle);
 } 
 
 fn generate_overlays_mesh(
@@ -124,16 +118,12 @@ fn generate_overlays_mesh(
     mut commands : Commands,
     mut meshes : ResMut<Assets<Mesh>>,
     mut materials : ResMut<Assets<TerritoryOverlaysMaterial>>,
-    mut textures : ResMut<Assets<Image>>,
 ) {
     let mut points = Vec::<Point>::new();
     let mut in_verts = Vec::<Vec3>::new();
     let mut in_ids = Vec::<u32>::new();
 
-    const TEXTURE_SIZE : usize = 128;
-    let colour_texture_data = [0; TEXTURE_SIZE * TEXTURE_SIZE * 4];
-
-    let mut star_position_texture_data = [0; TEXTURE_SIZE * TEXTURE_SIZE * 4];
+    let mut star_data =  Vec::with_capacity(1024);//
 
     let mut i =0;
     for (entity, transform,star) in &query {
@@ -145,9 +135,6 @@ fn generate_overlays_mesh(
         if let Some(_star) = star {
             commands.entity(entity).insert(StarGfxTag{ id : i as usize });
         }
-        
-        star_position_texture_data[(i as usize *16)..(i as usize*16)+4].copy_from_slice(&p.x.to_le_bytes());
-        star_position_texture_data[(i as usize *16)+4..(i as usize*16)+8].copy_from_slice(&p.z.to_le_bytes());
 
         let mut nearest = f32::MAX;
         
@@ -159,34 +146,14 @@ fn generate_overlays_mesh(
         }
 
         // distance to nearest neighbour stored in A channel
-        star_position_texture_data[(i as usize *16)+12..(i as usize*16)+16].copy_from_slice(&nearest.to_le_bytes());
+
+        star_data.push(StarFormat {
+            pos : Vec4::new(p.x,p.z, 0.0, nearest),
+            .. default()
+        });
 
         i+=1;
     }
-
-    let colours_texture = Image::new_fill(
-        Extent3d {
-            width : TEXTURE_SIZE as u32,
-            height: TEXTURE_SIZE as u32,
-            depth_or_array_layers:1,
-        },
-        TextureDimension::D2,
-        &colour_texture_data,
-        TextureFormat::Rgba8UnormSrgb,
-        RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD
-    );
-
-    let star_position_texture = Image::new_fill(
-        Extent3d {
-            width : TEXTURE_SIZE as u32,
-            height: TEXTURE_SIZE as u32,
-            depth_or_array_layers:1,
-        },
-        TextureDimension::D2,
-        &star_position_texture_data,
-        TextureFormat::Rgba32Float,
-        RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD
-    );
 
     let triangulation = triangulate(&points);
 
@@ -238,21 +205,17 @@ fn generate_overlays_mesh(
         ATTRIBUTE_STARID,
         star_ids
     )
-    .with_inserted_attribute(
-        ATTRIBUTE_STARDIST,
-        star_distances
-    )
     .with_inserted_indices(
         Indices::U32(indices)
     ));
 
-    let tex = textures.add(colours_texture);
-    let star_pos_tex = textures.add(star_position_texture);
-    let material = materials.add(TerritoryOverlaysMaterial { color_texture: Some(tex.clone()), star_position_texture : Some(star_pos_tex), alpha_mode : AlphaMode::Blend });
+    let material = materials.add(TerritoryOverlaysMaterial {
+        star_data_buffer : star_data,
+        alpha_mode : AlphaMode::Blend }
+    );
 
     commands.insert_resource(OverlaysData{
         _mesh_handle : mesh.clone(),
-        image_handle : tex,
         material_handle : material.clone()
     });
 
