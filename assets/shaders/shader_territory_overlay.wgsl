@@ -5,8 +5,12 @@ struct StarFormat {
     pos : vec4<f32>,
     col : vec4<f32>
 }
-
+struct LaneFormat {
+    enabled : u32,
+    col : vec3<f32>
+}
 @group(2) @binding(1) var<storage> star_data_array: array<StarFormat>;
+@group(2) @binding(2) var<storage> lane_data_array: array<LaneFormat>;
 
 struct Vertex {
     @builtin(instance_index) instance_index: u32,
@@ -203,40 +207,52 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
 
     var hyperlane_dist = 10000.f;
 
+    var lane = LaneFormat(0,vec3(0.0));
+    
+
     let hyperlane_w = 0.6;
     let hyperlane_offset = 12.0;
     if input.edge_id.x < 99999 {
         let dir = normalize(b.pos.xy - a.pos.xy) * hyperlane_offset;
-        hyperlane_dist = min(hyperlane_dist,
-            sd_uneven_capsule(
+        let d = sd_uneven_capsule(
                 p,
                 a.pos.xy + dir,
                 b.pos.xy - dir,
                 hyperlane_w,
                 hyperlane_w
-            ));
+            );
+        if d < hyperlane_dist {
+            hyperlane_dist = d;
+            lane = lane_data_array[input.edge_id.x];
+        }
     }
     if input.edge_id.y < 99999 {
         let dir = normalize(c.pos.xy - b.pos.xy) * hyperlane_offset;
-        hyperlane_dist = min(hyperlane_dist,
-            sd_uneven_capsule(
+        let d = sd_uneven_capsule(
                 p,
                 b.pos.xy + dir,
                 c.pos.xy - dir,
                 hyperlane_w,
                 hyperlane_w
-            ));
+            );
+        if d < hyperlane_dist {
+            hyperlane_dist = d;
+            lane = lane_data_array[input.edge_id.y];
+        }
     }
     if input.edge_id.z < 99999 {
         let dir = normalize(c.pos.xy - a.pos.xy) * hyperlane_offset;
-        hyperlane_dist = min(hyperlane_dist,
-            sd_uneven_capsule(
+        let d = sd_uneven_capsule(
                 p,
                 a.pos.xy + dir,
                 c.pos.xy - dir,
                 hyperlane_w,
                 hyperlane_w
-            ));
+            );
+        if d < hyperlane_dist {
+            hyperlane_dist = d;
+            lane = lane_data_array[input.edge_id.z];
+        }
     }
 
     let contraction_fac : f32 = 3.0;
@@ -309,8 +325,8 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
 
     let territory_col = a.col * c_weight.x + b.col * c_weight.y + c.col * c_weight.z;
 
+    let hyperlane_col = vec4(lane.col,1.0);
     let hyperlane_alpha = 1.0 - smoothstep(0.0,antialias_dist,hyperlane_dist);
-    let hyperlane_col = vec4(1.0,0.75,0.0,1.0);
 
     return mix(territory_col,hyperlane_col,hyperlane_alpha);
 }

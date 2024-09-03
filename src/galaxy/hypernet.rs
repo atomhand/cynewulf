@@ -100,7 +100,7 @@ impl Hypernet {
         let path = self.find_path_without_direct_edge(a,b);
 
         if let Some(path) = path {
-            Some(path.len())
+            Some(path.edges.len())
         } else {
             None
         }

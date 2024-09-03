@@ -98,7 +98,7 @@ pub fn draw_hyperlanes(
             if let Ok(star_b) = stars_query.get(hovered) {
                 if let Ok(star_a) = stars_query.get(selected_system) {
                     if let Some(path) = hypernet.find_path(star_a.node_id, star_b.node_id) {
-                        for star_p in path {
+                        for star_p in path.nodes {
                             let p_pos = hypernet.graph.node_weight(star_p.into()).unwrap().pos;
 
                             gizmos.circle(p_pos, Dir3::Y, 8.0, Color::srgb(1.0,0.0,0.0));

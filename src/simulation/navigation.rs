@@ -150,17 +150,23 @@ pub fn process_colonise_events  (
 
 use rand::prelude::*;
 
+use bevy::ecs::batching::BatchingStrategy;
+
 pub fn nav_find_colony_target_system(
     mut nav_query : Query<(&mut NavPosition, &mut Navigator, &Fleet)>,
     system_query : Query<(&Star,&StarClaim),Without<Navigator>>,
     planet_query : Query<(&Planet,Entity), (Without<Colony>,Without<Navigator>)>,
     hypernet : Res<Hypernet>,
 ){
-    let mut rng = rand::thread_rng();
 
-    for(nav_pos,mut nav, _fleet) in nav_query.iter_mut() {
-        let Action::Idle = nav.action else { continue; };
-        if nav.plan_queue.len() > 0 { continue; }
+    nav_query
+        .par_iter_mut()
+        .batching_strategy(BatchingStrategy::fixed(32))
+        .for_each(|(nav_pos,mut nav, _fleet)|
+    {
+        let mut rng = rand::thread_rng();
+        let Action::Idle = nav.action else { return; };
+        if nav.plan_queue.len() > 0 { return; }
 
         let mut best_option : Option<(u32,Entity)> = None;
         let mut best_dist = usize::MAX;
@@ -173,7 +179,7 @@ pub fn nav_find_colony_target_system(
             let Some((_planet,planet_entity)) = star.orbiters.iter().filter_map(|x| planet_query.get(*x).ok()).choose(&mut rng) else { continue; };
     
             if let Some(path) = hypernet.find_path(nav_pos.root_system, star.node_id) {
-                let d = path.len();
+                let d = path.edges.len();
     
                 if d < best_dist {
                     best_dist = d;
@@ -186,7 +192,7 @@ pub fn nav_find_colony_target_system(
             nav.plan_queue.push(Plan::Colonise(planet_entity));
             nav.plan_queue.push(Plan::ReachSystem(star_id));
         }
-    }
+    });
 }
 
 pub fn navigation_update_nav_system(
@@ -381,10 +387,10 @@ pub fn navigation_update_nav_system(
                         nav.plan_queue.pop();
                     } else {
                         if let Some(path) = hypernet.find_path(nav_pos.root_system, dest_system_id) {
-                            assert!(nav_pos.root_system == path[0], "path[0] doesn't match path origin!");
+                            assert!(nav_pos.root_system == path.nodes[0], "path[0] doesn't match path origin!");
 
-                            if path.len() > 1 {
-                                let next_system = path[1];
+                            if path.nodes.len() > 1 {
+                                let next_system = path.nodes[1];
                                 let next_system_node = hypernet.graph.node_weight(next_system.into()).unwrap();
                                 let root_system_node = hypernet.graph.node_weight(nav_pos.root_system.into()).unwrap();
                                 let (root_system_star,_) = system_query.get(root_system_node.star).unwrap();

@@ -20,6 +20,7 @@ use bevy::{
 #[repr(C)]
 struct LaneFormat {
     enabled : u32,
+    color : Vec3,
 }
 
 #[derive(ShaderType,Default,Debug,Clone)]
@@ -33,6 +34,8 @@ struct StarFormat {
 struct TerritoryOverlaysMaterial {
     #[storage(1, read_only)]
     star_data_buffer : Vec<StarFormat>,
+    #[storage(2, read_only)]
+    edge_data_buffer : Vec<LaneFormat>,
     alpha_mode : AlphaMode,
 }
 
@@ -94,16 +97,33 @@ impl Plugin for OverlaysPlugin {
 }
 
 fn update_overlays(
-    query : Query<(&StarGfxTag,&StarClaim),(With<Star>,Changed<StarClaim>)>,
+    star_update_query : Query<(&StarGfxTag,&StarClaim),(With<Star>,Changed<StarClaim>)>,
+    stars_query : Query<&Star>,
     empire_query : Query<&Empire>,
     mut mats : ResMut<Assets<TerritoryOverlaysMaterial>>,
     overlays_data : Res<OverlaysData>,
     selection : Res<crate::galaxy::Selection>,
+    hypernet : Res<Hypernet>,
     time : Res<Time>
 ) {
     let Some(mat) = mats.get_mut(&overlays_data.material_handle) else { return; };
 
-    for (tag,claim) in &query {
+    if selection.is_changed() {
+        for edge in &mut mat.edge_data_buffer {
+            edge.color = Vec3::new(1.0,0.75,0.0);
+        }
+        if let Some(star_b) = selection.hovered.and_then(|b| stars_query.get(b).ok()) {
+            if let Some(star_a) = selection.selected_system.and_then(|a| stars_query.get(a).ok()) {
+                if let Some(path) = hypernet.find_path(star_a.node_id, star_b.node_id) {
+                    for edge in path.edges {
+                        mat.edge_data_buffer[edge as usize].color = Vec3::new(1.0,0.0,0.0);
+                    }
+                }
+            }
+        }
+    }
+
+    for (tag,claim) in &star_update_query {
         let col = if let Some(owner) = claim.owner {
             let c = empire_query.get(owner).unwrap().color.to_srgba();
             let t = (time.elapsed_seconds_wrapped() % 2.0) / 2.0;
@@ -216,7 +236,7 @@ fn generate_overlays_mesh(
     }
 
     // 
-    let mut edge_data = vec![LaneFormat { enabled : 0 };hypernet.graph.capacity().1];
+    let mut edge_data = vec![LaneFormat { enabled : 0, color : Vec3::new(1.0,0.75,0.0) };hypernet.graph.capacity().1];
     for edge in hypernet.graph.edge_indices() {
         edge_data[edge.index()].enabled = 1;
     }
@@ -243,6 +263,7 @@ fn generate_overlays_mesh(
 
     let material = materials.add(TerritoryOverlaysMaterial {
         star_data_buffer : star_data,
+        edge_data_buffer : edge_data,
         alpha_mode : AlphaMode::Blend }
     );
 
