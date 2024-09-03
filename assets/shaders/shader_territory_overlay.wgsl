@@ -13,6 +13,7 @@ struct Vertex {
     @location(0) position: vec3<f32>,
     @location(1) @interpolate(flat) star_id: vec3<u32>,
     @location(2) barycentric: vec3<f32>,
+    @location(3) edge_id: vec3<u32>,
 }
 
 struct VertexOutput {
@@ -20,6 +21,7 @@ struct VertexOutput {
     @location(1) barycentric: vec3<f32>,
     @location(2) star_id: vec3<u32>,
     @location(3) world_pos: vec3<f32>,
+    @location(4) edge_id : vec3<u32>,
 }
 
 @vertex
@@ -31,6 +33,7 @@ fn vertex(@builtin(vertex_index) vertex_index : u32,
     out.star_id = vertex.star_id;
     out.barycentric = vertex.barycentric;
     out.world_pos = vertex.position;
+    out.edge_id = vertex.edge_id;
     return out;
 }
 
@@ -38,6 +41,7 @@ struct FragmentInput {
     @location(1) barycentric: vec3<f32>,
     @location(2) star_id: vec3<u32>,
     @location(3) world_pos: vec3<f32>,
+    @location(4) edge_id : vec3<u32>,
 };
 
 // The MIT License
@@ -133,11 +137,6 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
 
     let p = input.world_pos.xz;
 
-    // star colours
-    //let a = textureSample(material_color_texture,material_color_sampler, (vec2<f32>(f32(input.star_id.x % 128), f32(input.star_id.x / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
-    //let b = textureSample(material_color_texture,material_color_sampler, (vec2<f32>(f32(input.star_id.y % 128), f32(input.star_id.y / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
-    //let c = textureSample(material_color_texture,material_color_sampler, (vec2<f32>(f32(input.star_id.z % 128), f32(input.star_id.z / 128)) + vec2<f32>(0.5,0.5)) / 128.0);
-
     let a = star_data_array[input.star_id.x];
     let b = star_data_array[input.star_id.y];
     let c = star_data_array[input.star_id.z];
@@ -199,42 +198,94 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
         sd_circle(p, b.pos.xy, b.pos.w / 2.0),
         sd_circle(p, c.pos.xy, c.pos.w / 2.0)
     );
+
+    var hyperlane_dist = 10000.f;
+
+    let hyperlane_w = 1.0;
+    let hyperlane_offset = 12.0;
+    if input.edge_id.x < 99999 {
+        let dir = normalize(b.pos.xy - a.pos.xy) * hyperlane_offset;
+        hyperlane_dist = min(hyperlane_dist,
+            sd_uneven_capsule(
+                p,
+                a.pos.xy + dir,
+                b.pos.xy - dir,
+                hyperlane_w,
+                hyperlane_w
+            ));
+    }
+    if input.edge_id.y < 99999 {
+        let dir = normalize(c.pos.xy - b.pos.xy) * hyperlane_offset;
+        hyperlane_dist = min(hyperlane_dist,
+            sd_uneven_capsule(
+                p,
+                b.pos.xy + dir,
+                c.pos.xy - dir,
+                hyperlane_w,
+                hyperlane_w
+            ));
+    }
+    if input.edge_id.z < 99999 {
+        let dir = normalize(c.pos.xy - a.pos.xy) * hyperlane_offset;
+        hyperlane_dist = min(hyperlane_dist,
+            sd_uneven_capsule(
+                p,
+                a.pos.xy + dir,
+                c.pos.xy - dir,
+                hyperlane_w,
+                hyperlane_w
+            ));
+    }
     
     if all(b.col==c.col)
     {
-        let bf = star_adjusted_distance_factor(b.pos,c.pos,a.pos) / 2.0;
-        let cf = star_adjusted_distance_factor(c.pos,b.pos,a.pos) / 2.0;
-        let f = min(bf,cf);
-
         distance.y = min(distance.z,distance.y);
         distance.z = 1000.0;
-        distance.y = min(distance.y, sd_uneven_capsule(p, b.pos.xy, c.pos.xy, f, f));
+        if input.edge_id.y < 99999 {
+            let bf = star_adjusted_distance_factor(b.pos,c.pos,a.pos) / 2.0;
+            let cf = star_adjusted_distance_factor(c.pos,b.pos,a.pos) / 2.0;
+            let f = min(bf,cf);
+            distance.y = min(distance.y, sd_uneven_capsule(p, b.pos.xy, c.pos.xy, f, f));
+        }
     }
     if all(a.col==b.col)
     {
-        let af = star_adjusted_distance_factor(a.pos,b.pos,c.pos) / 2.0;
-        let bf = star_adjusted_distance_factor(b.pos,a.pos,c.pos) / 2.0;
-        let f = min(af,bf);
-
         distance.x = min(distance.x,distance.y);
-        distance.x = min(distance.x, sd_uneven_capsule(p, a.pos.xy, b.pos.xy, f, f));
         distance.y = 1000.0;
+        if input.edge_id.x < 99999 {
+            let af = star_adjusted_distance_factor(a.pos,b.pos,c.pos) / 2.0;
+            let bf = star_adjusted_distance_factor(b.pos,a.pos,c.pos) / 2.0;
+            let f = min(af,bf);
+            distance.x = min(distance.x, sd_uneven_capsule(p, a.pos.xy, b.pos.xy, f, f));
+        }
     }
     if all(a.col==c.col)
     {
-        let af = star_adjusted_distance_factor(a.pos,c.pos,b.pos) / 2.0;
-        let cf = star_adjusted_distance_factor(c.pos,a.pos,b.pos) / 2.0;
-        let f = min(af,cf);
-
         distance.x = min(distance.x,distance.z);
         distance.z = 1000.0;
-        distance.x = min(distance.x, sd_uneven_capsule(p, a.pos.xy, c.pos.xy, f, f));
+        if input.edge_id.z < 99999 {
+            let af = star_adjusted_distance_factor(a.pos,c.pos,b.pos) / 2.0;
+            let cf = star_adjusted_distance_factor(c.pos,a.pos,b.pos) / 2.0;
+            let f = min(af,cf);
+            distance.x = min(distance.x, sd_uneven_capsule(p, a.pos.xy, c.pos.xy, f, f));
+        }
     }
 
-    let edge_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(16.0), -distance);
-    let edge_outer = vec3(1.0) - smoothstep(vec3(0.0), vec3(0.1), distance);
+    // adjust this parameter to dilate or contract the border shape
+    distance += vec3(6.0);
+
+    // Get a cheap antialiasing by softly fading out any edges over a short distance scaled with the pixel derivatives
+    let antialias_dist = length(fwidth(input.world_pos.xz));
+
+    let edge_inner = vec3(1.0) - 0.9 * smoothstep(vec3(0.0),vec3(8.0), -distance);
+    let edge_outer = vec3(1.0) - smoothstep(vec3(0.0), vec3(antialias_dist), distance);
 
     let c_weight = saturate(min(edge_inner,edge_outer));
 
-    return a.col * c_weight.x + b.col * c_weight.y + c.col * c_weight.z;
+    let territory_col = a.col * c_weight.x + b.col * c_weight.y + c.col * c_weight.z;
+
+    let hyperlane_alpha = 1.0 - smoothstep(0.0,antialias_dist,hyperlane_dist);
+    let hyperlane_col = vec4(0.0,1.0,0.0,1.0);
+
+    return mix(territory_col,hyperlane_col,hyperlane_alpha);
 }

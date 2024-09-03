@@ -18,6 +18,12 @@ use bevy::{
 
 #[derive(ShaderType,Default,Debug,Clone)]
 #[repr(C)]
+struct LaneFormat {
+    enabled : u32,
+}
+
+#[derive(ShaderType,Default,Debug,Clone)]
+#[repr(C)]
 struct StarFormat {
     pos : Vec4,
     color : Vec4,
@@ -35,6 +41,9 @@ const ATTRIBUTE_BARYCENTRIC: MeshVertexAttribute =
 
 const ATTRIBUTE_STARID: MeshVertexAttribute =
     MeshVertexAttribute::new("StarID", 988540917, VertexFormat::Uint32x3);
+    
+const ATTRIBUTE_EDGEID: MeshVertexAttribute =
+    MeshVertexAttribute::new("EdgeID", 422059518, VertexFormat::Uint32x3);
 
 impl Material for TerritoryOverlaysMaterial {
     fn vertex_shader() -> ShaderRef {
@@ -53,6 +62,7 @@ impl Material for TerritoryOverlaysMaterial {
             Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
             ATTRIBUTE_STARID.at_shader_location(1),
             ATTRIBUTE_BARYCENTRIC.at_shader_location(2),
+            ATTRIBUTE_EDGEID.at_shader_location(3),
         ])?;
         descriptor.vertex.buffers = vec![vertex_layout];
         Ok(())
@@ -84,7 +94,7 @@ impl Plugin for OverlaysPlugin {
 }
 
 fn update_overlays(
-    query : Query<(&StarGfxTag,&StarClaim),With<Star>>,
+    query : Query<(&StarGfxTag,&StarClaim),(With<Star>,Changed<StarClaim>)>,
     empire_query : Query<&Empire>,
     mut mats : ResMut<Assets<TerritoryOverlaysMaterial>>,
     overlays_data : Res<OverlaysData>,
@@ -114,31 +124,33 @@ fn update_overlays(
 } 
 
 fn generate_overlays_mesh(
-    query : Query<(Entity,&Transform,Option<&Star>),With<OverlaysTriangulationVertex>>,
+    query : Query<(Entity,&Transform,&OverlaysTriangulationVertex,Option<&Star>)>,
     mut commands : Commands,
     mut meshes : ResMut<Assets<Mesh>>,
     mut materials : ResMut<Assets<TerritoryOverlaysMaterial>>,
+    hypernet : Res<Hypernet>
 ) {
     let mut points = Vec::<Point>::new();
     let mut in_verts = Vec::<Vec3>::new();
     let mut in_ids = Vec::<u32>::new();
 
-    let mut star_data =  Vec::with_capacity(1024);//
+    let mut star_data =  vec![StarFormat::default(); hypernet.graph.capacity().0];
 
-    let mut i =0;
-    for (entity, transform,star) in &query {
+    for (entity, transform, overlays_vertex, star) in &query {
         let p = transform.translation;
         in_verts.push(Vec3::new(p.x,-0.01,p.z));
         points.push(Point { x : p.x as f64, y : p.z as f64 });
 
-        in_ids.push(i);
+        let id = overlays_vertex.node_id;
+
+        in_ids.push(id);
         if let Some(_star) = star {
-            commands.entity(entity).insert(StarGfxTag{ id : i as usize });
+            commands.entity(entity).insert(StarGfxTag{ id : id as usize });
         }
 
         let mut nearest = f32::MAX;
         
-        for (_entity, transform,_star) in &query {
+        for (_entity, transform,_overlays_vertex, _star) in &query {
             let d = p.xz().distance(transform.translation.xz());
             if d > 0.5 {
                 nearest = f32::min(nearest,d);
@@ -147,12 +159,10 @@ fn generate_overlays_mesh(
 
         // distance to nearest neighbour stored in A channel
 
-        star_data.push(StarFormat {
+        star_data[id as usize] = StarFormat {
             pos : Vec4::new(p.x,p.z, 0.0, nearest),
             .. default()
-        });
-
-        i+=1;
+        };
     }
 
     let triangulation = triangulate(&points);
@@ -162,16 +172,27 @@ fn generate_overlays_mesh(
     let mut star_ids = Vec::<UVec3>::new();
     let mut star_distances = Vec::<Vec3>::new();
 
+    let mut lane_ids = Vec::<UVec3>::new();
+
     let n = triangulation.triangles.len();
     let tris = triangulation.triangles;
     let mut t = 0;
     let mut indices = Vec::<u32>::new();
+
     while t < n {
         bary.push(Vec3::X);
         bary.push(Vec3::Y);
         bary.push(Vec3::Z);
 
         let c = UVec3::new(in_ids[tris[t]],in_ids[tris[t+1]],in_ids[tris[t+2]]);
+        let e = UVec3::new(
+            hypernet.graph.find_edge(c.x.into(),c.y.into())
+            .and_then(|x| Some(x.index() as u32)).unwrap_or(100000),
+            hypernet.graph.find_edge(c.y.into(),c.z.into())
+            .and_then(|x| Some(x.index() as u32)).unwrap_or(100000),
+            hypernet.graph.find_edge(c.x.into(),c.z.into())
+            .and_then(|x| Some(x.index() as u32)).unwrap_or(100000),
+        );
 
         let pos_a = in_verts[in_ids[tris[t]] as usize];
         let pos_b = in_verts[in_ids[tris[t+1]] as usize];
@@ -181,6 +202,7 @@ fn generate_overlays_mesh(
             let p = in_verts[tris[t+i]];
 
             star_ids.push(c);
+            lane_ids.push(e);
             star_distances.push(Vec3::new(
                 p.distance(pos_a),
                 p.distance(pos_b),
@@ -191,6 +213,12 @@ fn generate_overlays_mesh(
         }
 
         t += 3;
+    }
+
+    // 
+    let mut edge_data = vec![LaneFormat { enabled : 0 };hypernet.graph.capacity().1];
+    for edge in hypernet.graph.edge_indices() {
+        edge_data[edge.index()].enabled = 1;
     }
 
     let mesh = meshes.add( Mesh::new(PrimitiveTopology::TriangleList,  RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD)
@@ -204,6 +232,10 @@ fn generate_overlays_mesh(
     .with_inserted_attribute(
         ATTRIBUTE_STARID,
         star_ids
+    )
+    .with_inserted_attribute(
+        ATTRIBUTE_EDGEID,
+        lane_ids
     )
     .with_inserted_indices(
         Indices::U32(indices)

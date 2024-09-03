@@ -3,7 +3,7 @@ use super::GalaxyConfig;
 
 #[derive(Component)]
 pub struct OverlaysTriangulationVertex {
-
+    pub node_id : u32
 }
 
 #[derive(Component)]

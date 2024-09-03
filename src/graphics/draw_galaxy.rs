@@ -109,6 +109,7 @@ pub fn draw_hyperlanes(
         }
     }
 
+    /*
     for edge in hypernet.graph.edge_indices() {
         let (an,bn) = hypernet.graph.edge_endpoints(edge).unwrap();
         let aw = hypernet.graph.node_weight(an).unwrap();
@@ -121,6 +122,7 @@ pub fn draw_hyperlanes(
 
         gizmos.line(a,b, Color::srgb(155./255.,205./255.,0.));
     }
+    */
 }
 
 pub fn draw_system_overlays(

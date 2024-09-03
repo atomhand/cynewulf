@@ -90,7 +90,7 @@ pub fn setup_stars(mut commands : Commands,
                 StarClaim {
                     owner : None
                 },
-                OverlaysTriangulationVertex{},
+                OverlaysTriangulationVertex{ node_id : node_id.index() as u32 },
                 SystemSelectable{radius : rad * 1.75 },
                 GalaxySelectable{ radius : 10.0 },
                 Description::star(starname),
@@ -107,7 +107,7 @@ pub fn setup_stars(mut commands : Commands,
             commands.entity(parent).insert(star).push_children(&planets);
         } else {
             commands.spawn((
-                OverlaysTriangulationVertex{},
+                OverlaysTriangulationVertex{ node_id : node_id.index() as u32 },
                 TransformBundle::from_transform(Transform::from_translation(star_pos))
             ));
         }
