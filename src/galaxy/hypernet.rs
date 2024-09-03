@@ -48,6 +48,11 @@ impl Hypernet {
         self.import(points);
         self.remove_over_length(length_remove_threshold);
         self.remove_random((self.graph.edge_count() as f32 * removal_rate) as u32, 12);
+
+        // clear out the dead nodes
+        // lazy method but it's not a hot loop
+        let temp = Graph::from(self.graph.clone());
+        self.graph = StableGraph::<Hypernode,Hyperlane, Undirected, u32>::from(temp);
     }
 
     fn import(&mut self, points : &Vec<Point>) {
