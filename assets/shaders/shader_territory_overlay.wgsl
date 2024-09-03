@@ -193,15 +193,17 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     return c_weight * col[m];
     */
 
-    var distance = vec3<f32>(
+    let circle_distance = vec3<f32>(
         sd_circle(p, a.pos.xy, a.pos.w / 2.0),
         sd_circle(p, b.pos.xy, b.pos.w / 2.0),
         sd_circle(p, c.pos.xy, c.pos.w / 2.0)
     );
 
+    var distance = circle_distance + vec3(1.0);
+
     var hyperlane_dist = 10000.f;
 
-    let hyperlane_w = 1.0;
+    let hyperlane_w = 0.6;
     let hyperlane_offset = 12.0;
     if input.edge_id.x < 99999 {
         let dir = normalize(b.pos.xy - a.pos.xy) * hyperlane_offset;
@@ -236,6 +238,9 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
                 hyperlane_w
             ));
     }
+
+    let contraction_fac : f32 = 3.0;
+    let smin_fac : f32 = 1.0;
     
     if all(b.col==c.col)
     {
@@ -244,8 +249,15 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
         if input.edge_id.y < 99999 {
             let bf = star_adjusted_distance_factor(b.pos,c.pos,a.pos) / 2.0;
             let cf = star_adjusted_distance_factor(c.pos,b.pos,a.pos) / 2.0;
-            let f = min(bf,cf);
-            distance.y = min(distance.y, sd_uneven_capsule(p, b.pos.xy, c.pos.xy, f, f));
+            let f = min(bf,cf) - contraction_fac;
+
+            // fade out when point is at edge AC or AB
+            // ie. when bary.y or bary.z == 0.0
+
+            let fadeout = smoothstep(0.9,1.0, 1.0 - min(input.barycentric.y,input.barycentric.z));
+            let d = sd_uneven_capsule(p, b.pos.xy, c.pos.xy, f, f);
+            let c = min(circle_distance.z,circle_distance.y);
+            distance.y = smin(distance.y, d, smin_fac);
         }
     }
     if all(a.col==b.col)
@@ -255,8 +267,15 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
         if input.edge_id.x < 99999 {
             let af = star_adjusted_distance_factor(a.pos,b.pos,c.pos) / 2.0;
             let bf = star_adjusted_distance_factor(b.pos,a.pos,c.pos) / 2.0;
-            let f = min(af,bf);
-            distance.x = min(distance.x, sd_uneven_capsule(p, a.pos.xy, b.pos.xy, f, f));
+            let f = min(af,bf) - contraction_fac;
+
+            // fade out when point is at edge BC or AC
+            // ie. when bary.x or bary.y == 0.0
+
+            let fadeout = smoothstep(0.9,1.0, 1.0 - min(input.barycentric.y,input.barycentric.x));
+            let d = sd_uneven_capsule(p, a.pos.xy, b.pos.xy, f, f);
+            let c = min(circle_distance.x,circle_distance.y);
+            distance.x = smin(distance.x, d, smin_fac);
         }
     }
     if all(a.col==c.col)
@@ -266,18 +285,24 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
         if input.edge_id.z < 99999 {
             let af = star_adjusted_distance_factor(a.pos,c.pos,b.pos) / 2.0;
             let cf = star_adjusted_distance_factor(c.pos,a.pos,b.pos) / 2.0;
-            let f = min(af,cf);
-            distance.x = min(distance.x, sd_uneven_capsule(p, a.pos.xy, c.pos.xy, f, f));
+            let f = min(af,cf) - contraction_fac;
+
+            // fade out when point is at edge AB or BC
+            // ie. when bary.z or bary.x == 0.0
+            let fadeout = smoothstep(0.9,1.0, 1.0 - min(input.barycentric.z,input.barycentric.x));
+            let d = sd_uneven_capsule(p, a.pos.xy, c.pos.xy, f, f);
+            let c = min(circle_distance.x,circle_distance.z);
+            distance.x = smin(distance.x, d, smin_fac);
         }
     }
 
     // adjust this parameter to dilate or contract the border shape
-    distance += vec3(6.0);
+    distance += vec3(3.0);
 
     // Get a cheap antialiasing by softly fading out any edges over a short distance scaled with the pixel derivatives
     let antialias_dist = length(fwidth(input.world_pos.xz));
 
-    let edge_inner = vec3(1.0) - 0.9 * smoothstep(vec3(0.0),vec3(8.0), -distance);
+    let edge_inner = vec3(1.0) - 0.9 * smoothstep(vec3(0.0),vec3(5.0), -distance);
     let edge_outer = vec3(1.0) - smoothstep(vec3(0.0), vec3(antialias_dist), distance);
 
     let c_weight = saturate(min(edge_inner,edge_outer));
@@ -285,7 +310,7 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let territory_col = a.col * c_weight.x + b.col * c_weight.y + c.col * c_weight.z;
 
     let hyperlane_alpha = 1.0 - smoothstep(0.0,antialias_dist,hyperlane_dist);
-    let hyperlane_col = vec4(0.0,1.0,0.0,1.0);
+    let hyperlane_col = vec4(1.0,0.75,0.0,1.0);
 
     return mix(territory_col,hyperlane_col,hyperlane_alpha);
 }
