@@ -47,18 +47,21 @@ fn setup_widget(
         SelectionPanel,
         NodeBundle {
             background_color: BackgroundColor(Color::BLACK.with_alpha(1.0)),
+            border_color : BorderColor(Color::srgb(0.1,0.1,0.2)),
             z_index: ZIndex::Global(i32::MAX-1),
             style: Style {
                 flex_direction : FlexDirection::Column,
                 align_items : AlignItems::FlexStart,
                 position_type: PositionType::Absolute,
                 justify_content : JustifyContent::Center,
-                width: Val::Percent(20.),
+                max_width : Val::Percent(20.),
+                width: Val::Auto,
                 height: Val::Auto,
                 left: Val::Percent(1.),
                 bottom: Val::Percent(1.),
                 top: Val::Auto,
                 right: Val::Auto,
+                border : UiRect::all(Val::Px(4.0)),
                 padding: UiRect::all(Val::Px(1.0)),
                 ..Default::default()
             },
