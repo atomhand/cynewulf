@@ -3,7 +3,8 @@
 
 struct StarFormat {
     pos : vec4<f32>,
-    col : vec4<f32>
+    col : vec4<f32>,
+    halo_col : vec4<f32>
 }
 struct LaneFormat {
     enabled : u32,
@@ -113,7 +114,11 @@ fn line_segment_distance(v : vec2<f32>, w : vec2<f32>, p : vec2<f32>) -> f32 {
     return distance(p,projection);
 }
 
-fn smin(a : f32, b : f32, in_k : f32) -> f32 {
+fn smin(a : f32, b : f32, in_k : f32) -> f32 { 
+    /*   
+    let h : f32 = clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 );
+    return mix( b, a, h ) - k*h*(1.0-h);
+*/    
     let k = in_k * 1.0/(1.0-sqrt(0.5));
     let h = max( k-abs(a-b), 0.0)/k;
     return min(a,b) - k*0.5*(1.0+h-sqrt(1.0-h*(h-2.0)));
@@ -144,10 +149,6 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let a = star_data_array[input.star_id.x];
     let b = star_data_array[input.star_id.y];
     let c = star_data_array[input.star_id.z];
-
-    if all(max(a.col,max(b.col,c.col)) == vec4(0.0)) {
-        return vec4(0.0);
-    }
 
     // NOTE FOR POTENTIAL OPTIMISATION
     // Process
@@ -258,7 +259,7 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let contraction_fac : f32 = 3.0;
     let smin_fac : f32 = 1.0;
     
-    if all(b.col==c.col)
+    if b.col.a != 0.0 && all(b.col==c.col)
     {
         distance.y = min(distance.z,distance.y);
         distance.z = 1000.0;
@@ -276,7 +277,7 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
             distance.y = smin(distance.y, d, smin_fac);
         }
     }
-    if all(a.col==b.col)
+    if a.col.a != 0.0 && all(a.col==b.col)
     {
         distance.x = min(distance.x,distance.y);
         distance.y = 1000.0;
@@ -294,7 +295,7 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
             distance.x = smin(distance.x, d, smin_fac);
         }
     }
-    if all(a.col==c.col)
+    if a.col.a != 0.0 && all(a.col==c.col)
     {
         distance.x = min(distance.x,distance.z);
         distance.z = 1000.0;
@@ -325,8 +326,15 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
 
     let territory_col = a.col * c_weight.x + b.col * c_weight.y + c.col * c_weight.z;
 
+    // selection halo
+    let sel_edge_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(antialias_dist),-distance+1.0);
+    let sel_edge_outer = vec3(1.0) - smoothstep(vec3(0.0),vec3(antialias_dist),distance-2.0);
+    let sel_weight = saturate(min(sel_edge_inner,sel_edge_outer));
+
+    let sel_col = a.halo_col * sel_weight.x + b.halo_col * sel_weight.y + c.halo_col * sel_weight.z;
+
     let hyperlane_col = vec4(lane.col,1.0);
     let hyperlane_alpha = 1.0 - smoothstep(0.0,antialias_dist,hyperlane_dist);
 
-    return mix(territory_col,hyperlane_col,hyperlane_alpha);
+    return mix(saturate(mix(territory_col,sel_col,sel_col.a)),hyperlane_col,hyperlane_alpha);
 }

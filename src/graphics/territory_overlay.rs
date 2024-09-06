@@ -28,6 +28,7 @@ struct LaneFormat {
 struct StarFormat {
     pos : Vec4,
     color : Vec4,
+    halo_color : Vec4
 }
 
 #[derive(Asset,TypePath,AsBindGroup,Debug,Clone)]
@@ -97,7 +98,8 @@ impl Plugin for OverlaysPlugin {
 }
 
 fn update_overlays(
-    star_update_query : Query<(&StarGfxTag,&StarClaim),(With<Star>,Changed<StarClaim>)>,
+    star_update_query : Query<(Entity,&StarGfxTag,&StarClaim),With<Star>>,
+    star_changed_update_query : Query<(Entity,&StarGfxTag,&StarClaim),(With<Star>,Changed<StarClaim>)>,
     stars_query : Query<&Star>,
     empire_query : Query<&Empire>,
     mut mats : ResMut<Assets<TerritoryOverlaysMaterial>>,
@@ -121,26 +123,56 @@ fn update_overlays(
                 }
             }
         }
-    }
 
-    for (tag,claim) in &star_update_query {
-        let col = if let Some(owner) = claim.owner {
-            let c = empire_query.get(owner).unwrap().color.to_srgba();
-            let t = (time.elapsed_seconds_wrapped() % 2.0) / 2.0;
-            let anim = f32::sin(t * 2.0 * std::f32::consts::PI) * 0.5 + 0.5;
-            if claim.owner == selection.hovered {               
-                c.mix(&Srgba::new(1.0 - c.red,1.0 - c.green,1.0-c.blue,1.0),anim)
-            } else if claim.owner == selection.selected {                
-                c.mix(&Color::WHITE.to_srgba(),anim)
+        // if selection is changed, update halos for all stars
+        // otherwise only for stars whose starclaim has changed
+        // Could be a little more elegant!
+
+        for (entity, tag,claim) in &star_update_query {
+            let col : Srgba = if let Some(owner) = claim.owner {
+                empire_query.get(owner).unwrap().color.to_srgba()
+            } else {
+                Srgba::new(0.0,0.0,0.0,0.0)
+            };
+    
+            let hovered = Some(entity) == selection.hovered || (claim.owner.is_some() && claim.owner == selection.hovered);
+            let selected = Some(entity) == selection.selected || (claim.owner.is_some() && claim.owner == selection.selected);
+    
+            let halo : Srgba =  if hovered {               
+                Srgba::new(1.0,0.5,0.0,1.0)
+            } else if selected {                
+                Color::WHITE.into()
             } else {                
-                c
-            }
-        } else {
-            Srgba::new(0.0,0.0,0.0,0.0)
-        };
-
-        mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
+                Srgba::new(0.0,0.0,0.0,0.0)
+            };
+    
+            mat.star_data_buffer[tag.id as usize].halo_color = halo.to_vec4();
+            mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
+        }
+    } else {
+        for (entity, tag,claim) in &star_changed_update_query {
+            let col : Srgba = if let Some(owner) = claim.owner {
+                empire_query.get(owner).unwrap().color.to_srgba()
+            } else {
+                Srgba::new(0.0,0.0,0.0,0.0)
+            };
+    
+            let hovered = Some(entity) == selection.hovered || (claim.owner.is_some() && claim.owner == selection.hovered);
+            let selected = Some(entity) == selection.selected || (claim.owner.is_some() && claim.owner == selection.selected);
+    
+            let halo : Srgba =  if hovered {               
+                Srgba::new(1.0,0.5,0.0,1.0)
+            } else if selected {                
+                Color::WHITE.into()
+            } else {                
+                Srgba::new(0.0,0.0,0.0,0.0)
+            };
+    
+            mat.star_data_buffer[tag.id as usize].halo_color = halo.to_vec4();
+            mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
+        }
     }
+
 } 
 
 fn generate_overlays_mesh(
