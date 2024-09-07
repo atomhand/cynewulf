@@ -4,7 +4,8 @@
 struct StarFormat {
     pos : vec4<f32>,
     col : vec4<f32>,
-    halo_col : vec4<f32>
+    empire_halo : vec4<f32>,
+    system_halo : vec4<f32>,
 }
 struct LaneFormat {
     enabled : u32,
@@ -139,6 +140,16 @@ fn pick(rd : vec3<f32>, v : f32) -> vec3<f32> {
     return saturate(res);
 }
 
+fn halo_weight(dist : vec3<f32>, pixel_dist : f32,  offset : f32, thickness : f32) -> vec3<f32> {
+    let offset2 = offset+thickness + offset*0.5;
+    let thickness2 = thickness * 0.5;
+
+    let a_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),-dist+offset);
+    let a_outer = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),dist-(offset+thickness));
+
+    return saturate(min(a_inner,a_outer));
+}
+
 @fragment
 fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let d = min(input.barycentric.x, min(input.barycentric.y, input.barycentric.z));
@@ -205,13 +216,13 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     );
 
     var distance = circle_distance + vec3(1.0);
+    var halo_distance = distance;
 
     var hyperlane_dist = 10000.f;
 
-    var lane = LaneFormat(0,vec3(0.0));
-    
+    var lane = LaneFormat(0,vec3(0.0));    
 
-    let hyperlane_w = 0.6;
+    let hyperlane_w = 0.1;
     let hyperlane_offset = 12.0;
     if input.edge_id.x < 99999 {
         let dir = normalize(b.pos.xy - a.pos.xy) * hyperlane_offset;
@@ -276,6 +287,11 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
             let c = min(circle_distance.z,circle_distance.y);
             distance.y = smin(distance.y, d, smin_fac);
         }
+
+        if all(b.system_halo == c.system_halo) {
+            halo_distance.y = distance.y;
+            halo_distance.z = distance.z;
+        }
     }
     if a.col.a != 0.0 && all(a.col==b.col)
     {
@@ -294,6 +310,11 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
             let c = min(circle_distance.x,circle_distance.y);
             distance.x = smin(distance.x, d, smin_fac);
         }
+
+        if all(b.system_halo == a.system_halo) {
+            halo_distance.x = distance.x;
+            halo_distance.y = distance.y;
+        }
     }
     if a.col.a != 0.0 && all(a.col==c.col)
     {
@@ -311,11 +332,17 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
             let c = min(circle_distance.x,circle_distance.z);
             distance.x = smin(distance.x, d, smin_fac);
         }
+
+        if all(a.system_halo == c.system_halo) {
+            halo_distance.x = distance.x;
+            halo_distance.z = distance.z;
+        }
     }
 
     // adjust this parameter to dilate or contract the border shape
-    distance += vec3(3.0);
+    distance += vec3(4.0);
 
+    halo_distance += vec3(4.0);
     // Get a cheap antialiasing by softly fading out any edges over a short distance scaled with the pixel derivatives
     let antialias_dist = length(fwidth(input.world_pos.xz));
 
@@ -327,14 +354,16 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let territory_col = a.col * c_weight.x + b.col * c_weight.y + c.col * c_weight.z;
 
     // selection halo
-    let sel_edge_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(antialias_dist),-distance+1.0);
-    let sel_edge_outer = vec3(1.0) - smoothstep(vec3(0.0),vec3(antialias_dist),distance-2.0);
-    let sel_weight = saturate(min(sel_edge_inner,sel_edge_outer));
+    let system_halo_weight = halo_weight(halo_distance, antialias_dist, 1.0, 1.0) + halo_weight(halo_distance, antialias_dist, 2.5 + antialias_dist, 0.5);
+    let system_halo = a.system_halo * system_halo_weight.x + b.system_halo * system_halo_weight.y + c.system_halo * system_halo_weight.z;
 
-    let sel_col = a.halo_col * sel_weight.x + b.halo_col * sel_weight.y + c.halo_col * sel_weight.z;
+    let empire_halo_weight = halo_weight(distance, antialias_dist, 1.0, 1.0) + halo_weight(distance, antialias_dist, 2.5 + antialias_dist, 0.5);
+    let empire_halo = a.empire_halo * empire_halo_weight.x + b.empire_halo * empire_halo_weight.y + c.empire_halo * empire_halo_weight.z;
 
     let hyperlane_col = vec4(lane.col,1.0);
     let hyperlane_alpha = 1.0 - smoothstep(0.0,antialias_dist,hyperlane_dist);
 
-    return mix(saturate(mix(territory_col,sel_col,sel_col.a)),hyperlane_col,hyperlane_alpha);
+    let sel_col = mix(empire_halo,system_halo,system_halo.a);
+
+    return mix(mix(territory_col,sel_col,sel_col.a),hyperlane_col,hyperlane_alpha);
 }

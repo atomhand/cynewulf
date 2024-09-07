@@ -87,44 +87,6 @@ impl Plugin for DrawGalaxyPlugin {
     }
 }
 
-pub fn draw_hyperlanes(
-    hypernet : Res<Hypernet>,
-    selection : Res<Selection>,
-    stars_query : Query<&Star>,
-    mut gizmos : Gizmos
-) {
-    if let Some(hovered) = selection.hovered {
-        if let Some(selected_system) = selection.selected_system {
-            if let Ok(star_b) = stars_query.get(hovered) {
-                if let Ok(star_a) = stars_query.get(selected_system) {
-                    if let Some(path) = hypernet.find_path(star_a.node_id, star_b.node_id) {
-                        for star_p in path.nodes {
-                            let p_pos = hypernet.graph.node_weight(star_p.into()).unwrap().pos;
-
-                            gizmos.circle(p_pos, Dir3::Y, 8.0, Color::srgb(1.0,0.0,0.0));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /*
-    for edge in hypernet.graph.edge_indices() {
-        let (an,bn) = hypernet.graph.edge_endpoints(edge).unwrap();
-        let aw = hypernet.graph.node_weight(an).unwrap();
-        let bw = hypernet.graph.node_weight(bn).unwrap();
-
-        let dir = (bw.pos-aw.pos).normalize();
-
-        let a = aw.pos + dir * GalaxyConfig::HYPERLANE_VISUAL_STAR_CLEARANCE;
-        let b = bw.pos - dir * GalaxyConfig::HYPERLANE_VISUAL_STAR_CLEARANCE;
-
-        gizmos.line(a,b, Color::srgb(155./255.,205./255.,0.));
-    }
-    */
-}
-
 pub fn draw_system_overlays(
     stars : Query<&Star>,
     cam : Res<CameraSettings>,

@@ -28,7 +28,8 @@ struct LaneFormat {
 struct StarFormat {
     pos : Vec4,
     color : Vec4,
-    halo_color : Vec4
+    empire_halo : Vec4,
+    system_halo : Vec4
 }
 
 #[derive(Asset,TypePath,AsBindGroup,Debug,Clone)]
@@ -134,19 +135,27 @@ fn update_overlays(
             } else {
                 Srgba::new(0.0,0.0,0.0,0.0)
             };
+
+            let empire_hovered = (claim.owner.is_some() && claim.owner == selection.hovered);
+            let empire_selected = (claim.owner.is_some() && claim.owner == selection.selected);
     
-            let hovered = Some(entity) == selection.hovered || (claim.owner.is_some() && claim.owner == selection.hovered);
-            let selected = Some(entity) == selection.selected || (claim.owner.is_some() && claim.owner == selection.selected);
+            let hovered = Some(entity) == selection.hovered;
+            let selected = Some(entity) == selection.selected;
     
-            let halo : Srgba =  if hovered {               
+            mat.star_data_buffer[tag.id as usize].system_halo = if hovered {               
                 Srgba::new(1.0,0.5,0.0,1.0)
             } else if selected {                
                 Color::WHITE.into()
-            } else {                
-                Srgba::new(0.0,0.0,0.0,0.0)
-            };
-    
-            mat.star_data_buffer[tag.id as usize].halo_color = halo.to_vec4();
+            } else {                              
+                Color::NONE.into()
+            }.to_vec4();
+            mat.star_data_buffer[tag.id as usize].empire_halo = if empire_hovered {               
+                Srgba::new(1.0,0.5,0.0,1.0)
+            } else if empire_selected {                
+                Color::WHITE.into()
+            } else {                              
+                col
+            }.to_vec4();
             mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
         }
     } else {
@@ -156,19 +165,27 @@ fn update_overlays(
             } else {
                 Srgba::new(0.0,0.0,0.0,0.0)
             };
+
+            let empire_hovered = (claim.owner.is_some() && claim.owner == selection.hovered);
+            let empire_selected = (claim.owner.is_some() && claim.owner == selection.selected);
     
-            let hovered = Some(entity) == selection.hovered || (claim.owner.is_some() && claim.owner == selection.hovered);
-            let selected = Some(entity) == selection.selected || (claim.owner.is_some() && claim.owner == selection.selected);
+            let hovered = Some(entity) == selection.hovered;
+            let selected = Some(entity) == selection.selected;
     
-            let halo : Srgba =  if hovered {               
+            mat.star_data_buffer[tag.id as usize].system_halo = if hovered {               
                 Srgba::new(1.0,0.5,0.0,1.0)
             } else if selected {                
                 Color::WHITE.into()
-            } else {                
-                Srgba::new(0.0,0.0,0.0,0.0)
-            };
-    
-            mat.star_data_buffer[tag.id as usize].halo_color = halo.to_vec4();
+            } else {                              
+                Color::NONE.into()
+            }.to_vec4();
+            mat.star_data_buffer[tag.id as usize].empire_halo = if empire_hovered {               
+                Srgba::new(1.0,0.5,0.0,1.0)
+            } else if empire_selected {                
+                Color::WHITE.into()
+            } else {                              
+                col
+            }.to_vec4();
             mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
         }
     }
