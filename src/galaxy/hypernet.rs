@@ -44,6 +44,10 @@ impl Hypernet {
         self.graph.edge_count() as i32
     }
 
+    pub fn node(&self, id : u32) -> &Hypernode {
+        self.graph.node_weight(id.into()).unwrap()
+    }
+
     pub fn build_from_points(&mut self, points : &Vec<Point>, length_remove_threshold : f32, removal_rate : f32) {
         self.import(points);
         self.remove_over_length(length_remove_threshold);

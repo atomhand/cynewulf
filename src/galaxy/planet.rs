@@ -6,7 +6,7 @@ use super::GalaxyConfig;
 #[derive(Component)]
 pub struct Planet {
     au_scaled_pos : Vec3, // Planet pos is stored in AU, for convenience and accuracy. Needs to be rescaled for rendering etc.
-    star_id : u32, // for convenient access
+    pub star_id : u32, // for convenient access
     pub star_pos : Vec3,
     // In AU
     pub orbit_radius : f32,
