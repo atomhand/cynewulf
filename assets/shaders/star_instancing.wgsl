@@ -58,16 +58,18 @@ fn draw_star(pos : vec2<f32>, star_color : vec3<f32>, I : f32) -> vec3<f32> {
     let c = star_color * (0.5 + 0.5 / a);//star_color * (24.0 / a);
 
     var SCALE = 1.0;// /16.0;
-    var d : f32 = length(pos) * SCALE;
+    var d : f32 = length(pos) * SCALE * 1.3;
 
     var col = I * c;
     var spectrum = I * c;
 
     col = spectrum / (d*d*d);
 
-    d = length(pos * vec2<f32>(50.0,0.5)) * SCALE;
+    let ARMS_SCALE = SCALE / 1.4;
+
+    d = length(pos * vec2<f32>(50.0,0.5)) * ARMS_SCALE;
     col += spectrum/ (d*d*d) * (1.0 - settings.system_transition_factor);
-    d = length(pos * vec2<f32>(0.5,50.0)) * SCALE;
+    d = length(pos * vec2<f32>(0.5,50.0)) * ARMS_SCALE;
     col += spectrum / (d*d*d) * (1.0 - settings.system_transition_factor);
 
     return col ;//* (1.0 - smoothstep(0.9,1.0,length(pos)));
@@ -96,14 +98,14 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let dpdy = dpdy(in.uv);
 
     let intensity = 1.0 / 512.0;//.02*exp(-15.*rnd(1));
-    var starcol  = draw_star(in.uv + weights_8[0].x*dpdx + weights_8[0].y*dpdy, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + weights_8[1].x*dpdx + weights_8[1].y*dpdy, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + weights_8[2].x*dpdx + weights_8[2].y*dpdy, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + weights_8[3].x*dpdx + weights_8[3].y*dpdy, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + weights_8[4].x*dpdx + weights_8[4].y*dpdy, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + weights_8[5].x*dpdx + weights_8[5].y*dpdy, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + weights_8[6].x*dpdx + weights_8[6].y*dpdy, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + weights_8[7].x*dpdx + weights_8[7].y*dpdy, in.color.rgb, intensity);
+    var starcol  = draw_star(in.uv + dpdx * weights_8[0].x + dpdy * weights_8[0].y, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + dpdx * weights_8[1].x + dpdy * weights_8[1].y, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + dpdx * weights_8[2].x + dpdy * weights_8[2].y, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + dpdx * weights_8[3].x + dpdy * weights_8[3].y, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + dpdx * weights_8[4].x + dpdy * weights_8[4].y, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + dpdx * weights_8[5].x + dpdy * weights_8[5].y, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + dpdx * weights_8[6].x + dpdy * weights_8[6].y, in.color.rgb, intensity);
+    starcol     += draw_star(in.uv + dpdx * weights_8[7].x + dpdy * weights_8[7].y, in.color.rgb, intensity);
     starcol = starcol / 4.0;
 
     let a = (starcol.x+starcol.y+starcol.z)/3.0;
