@@ -33,7 +33,7 @@ fn update_hits(
         if let Some(distance) = ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y)) {
             let mouse_point = ray.get_point(distance);
 
-            let mut n_dist = 10.0 * 10.0;
+            let mut n_dist = 100.0 * 100.0;
             let mut nearest : Option<Entity> = None;
 
             // iterate

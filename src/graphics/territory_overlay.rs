@@ -79,7 +79,8 @@ impl Material for TerritoryOverlaysMaterial {
 
 #[derive(Component)]
 struct StarGfxTag {
-    id : usize
+    id : usize,
+    nearest : f32 // distance to nearest other star
 }
 
 #[derive(Resource)]
@@ -94,6 +95,7 @@ impl Plugin for OverlaysPlugin {
     fn build(&self, app : &mut App) {
         app.add_plugins(MaterialPlugin::<TerritoryOverlaysMaterial>::default())
             .add_systems(Startup, generate_overlays_mesh.after(crate::generators::galaxy_generation::setup_stars))
+            .add_systems(PostStartup,update_selection_radius)
             .add_systems(Update,update_overlays);
     }
 }
@@ -154,7 +156,7 @@ fn update_overlays(
             } else if empire_selected {                
                 Color::WHITE.into()
             } else {                              
-                col
+                Color::NONE.into()
             }.to_vec4();
             mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
         }
@@ -184,13 +186,22 @@ fn update_overlays(
             } else if empire_selected {                
                 Color::WHITE.into()
             } else {                              
-                col
+                Color::NONE.into()
             }.to_vec4();
             mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
         }
     }
 
 } 
+
+use crate::galaxy::selection::GalaxySelectable;
+fn update_selection_radius (
+    mut query : Query<(&StarGfxTag,&mut GalaxySelectable)>
+) {
+    for (tag, mut selectable) in query.iter_mut() {
+        selectable.radius = tag.nearest * 0.5 - 1.0;
+    }
+}
 
 fn generate_overlays_mesh(
     query : Query<(Entity,&Transform,&OverlaysTriangulationVertex,Option<&Star>)>,
@@ -212,11 +223,6 @@ fn generate_overlays_mesh(
 
         let id = overlays_vertex.node_id;
 
-        in_ids.push(id);
-        if let Some(_star) = star {
-            commands.entity(entity).insert(StarGfxTag{ id : id as usize });
-        }
-
         let mut nearest = f32::MAX;
         
         for (_entity, transform,_overlays_vertex, _star) in &query {
@@ -224,6 +230,11 @@ fn generate_overlays_mesh(
             if d > 0.5 {
                 nearest = f32::min(nearest,d);
             }
+        }
+
+        in_ids.push(id);
+        if let Some(_star) = star {
+            commands.entity(entity).insert(StarGfxTag{ id : id as usize, nearest });
         }
 
         // distance to nearest neighbour stored in A channel
