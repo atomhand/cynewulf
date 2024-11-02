@@ -4,6 +4,7 @@ pub use crate::simulation::data::population::Population;
 pub use crate::galaxy::{
     Empire,
     StarClaim,
+    Fleet,
     colony::{Economy,Colony},
 };
 

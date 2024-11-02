@@ -3,7 +3,13 @@ use bevy::ecs::schedule::ScheduleLabel;
 mod time;
 mod orbits;
 mod demography_system;
-pub mod navigation;
+mod vizier;
+
+mod mission;
+mod agenda;
+
+pub mod fleet_behaviour;
+
 pub mod data;
 
 pub use time::SimTime;
@@ -81,6 +87,9 @@ fn simulation_tick_system(world : &mut World) {
     }
 }
 
+use fleet_behaviour::navigation;
+use fleet_behaviour::colonisation;
+
 impl Plugin for SimulationPlugin {
     fn build(&self, app : &mut App) {
 
@@ -91,14 +100,14 @@ impl Plugin for SimulationPlugin {
             orbits::update_orbiters,
             demography_system::update_population,
             (navigation::navigation_update_nav_system,
-            navigation::nav_find_colony_target_system,
-            navigation::process_colonise_events).chain()
+            colonisation::nav_find_colony_target_system,
+            colonisation::process_colonise_events).chain()
         ));
 
         app.insert_resource(SimTime::new())
             .insert_resource(SimulationSettings{ mode : SimulationMode::Normal, paused : true, time_since_tick : 0.0})
             .add_schedule(simulation_schedule)
             .add_systems(Update,(simulation_tick_system,crate::galaxy::fleet::fleet_preview_gizmos))
-            .add_event::<navigation::ColonisePlanetEvent>();
+            .add_event::<colonisation::ColonisePlanetEvent>();
     }
 }
