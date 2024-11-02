@@ -67,9 +67,6 @@ impl CameraMain {
 
     fn translation(&self, transition : f32, galaxy_scale : f32) -> Vec3 {
         let adjusted_system_scale = self.system_radius * 2.0;
-
-        let star_mode_look_pos = self.star_pos + self.star_local_pos + Vec3::new(0.0,0.0,0.0);
-        let look_pos = self.target_pos * (1.0 - transition) + transition * star_mode_look_pos;
         
         let galaxy_zoom =self.zoom * 0.85 + 0.15;
         let adjusted_galaxy_scale = galaxy_scale * galaxy_zoom;
@@ -77,13 +74,13 @@ impl CameraMain {
         let adjusted_scale = adjusted_galaxy_scale * (1.0 - transition) + adjusted_system_scale * transition;
 
         let antitilt = 0.6;
-        look_pos + Vec3::new(0., adjusted_scale, -adjusted_scale * antitilt)
+        self.look_pos(transition) + Vec3::new(0., adjusted_scale, -adjusted_scale * antitilt)
     }
 
     fn look_pos(&self, transition : f32) -> Vec3 {
         let system_scale = self.system_radius * 2.0;
         let star_mode_look_pos = self.star_pos + self.star_local_pos
-            + Vec3::new(0.0,0.0,-0.1 * system_scale);
+            + Vec3::new(0.0,0.0,-0.1 * system_scale); // This is a fudged offset to make the star system better centred on camera.. there has to be a better way. :)
         self.target_pos * (1.0 - transition) + transition * star_mode_look_pos
     }
 }
@@ -126,7 +123,7 @@ fn smootherstep(edge0 : f32, edge1 : f32, x : f32) -> f32 {
 }
 
 pub fn camera_control_system(
-    mut query: Query<(&Camera, &GlobalTransform, &mut Transform, &mut CameraMain)>,
+    mut query: Query<(&Camera, &mut Transform, &mut CameraMain)>,
     star_query: Query<&Star>,
     windows : Query<&Window>,
     mut camera_settings : ResMut<CameraSettings>,
@@ -138,18 +135,41 @@ pub fn camera_control_system(
     mut scroll_evr: EventReader<MouseWheel>,
 ) {
     let galaxy_scale = galaxy_config.radius * 2.5;
-    let (cam, camera_global_transform,mut transform,  mut camera_main) = query.get_single_mut().expect("Error: Require ONE camera");
+    let (cam, mut transform,  mut camera_main) = query.get_single_mut().expect("Error: Require ONE camera");
 
-    let mouse_world_pos = windows
-        .single()
-        .cursor_position()
-        .and_then(|cursor| cam.viewport_to_world(camera_global_transform,cursor ))
+    let cursor = windows.single().cursor_position(); // cache this cause we will use it twice
+    let mouse_world_pos = cursor
+        .and_then(|cursor| cam.viewport_to_world(&GlobalTransform::from(*transform),cursor ))
         .map(|ray| 
             ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y))
             .map(|distance|
                 ray.get_point(distance)
             )
         ).flatten();
+
+    let mut key_delta = Vec3::ZERO;
+
+    if mouse_buttons.pressed(MouseButton::Middle) {
+        if camera_main.dragging.is_none() {
+            camera_main.dragging = mouse_world_pos;
+        }
+    } else {
+        camera_main.dragging = None;
+
+        // no keyboard movement unless drag pan is not active
+        if keys.pressed(KeyCode::KeyW) {
+            key_delta.z += 1.0;
+        }
+        if keys.pressed(KeyCode::KeyA) {
+            key_delta.x += 1.0;
+        }
+        if keys.pressed(KeyCode::KeyS) {
+            key_delta.z -= 1.0;
+        }
+        if keys.pressed(KeyCode::KeyD) {
+            key_delta.x -= 1.0;
+        }
+    }
 
     match camera_settings.camera_mode {
         CameraMode::Star => {            
@@ -183,46 +203,15 @@ pub fn camera_control_system(
         }
     }
 
-    let mut key_delta = Vec3::ZERO;
-
-    if keys.pressed(KeyCode::KeyW) {
-        key_delta.z += 1.0;
-    }
-    if keys.pressed(KeyCode::KeyA) {
-        key_delta.x += 1.0;
-    }
-    if keys.pressed(KeyCode::KeyS) {
-        key_delta.z -= 1.0;
-    }
-    if keys.pressed(KeyCode::KeyD) {
-        key_delta.x -= 1.0;
-    }
-
-    let mut drag_offset = Vec3::ZERO;
-
-    if mouse_buttons.pressed(MouseButton::Middle) {
-        key_delta = Vec3::ZERO;
-        match camera_main.dragging {
-            None => {
-                camera_main.dragging = mouse_world_pos;
-            },
-            Some(drag_origin) => {
-                if let Some(mouse_world_pos) = mouse_world_pos {
-                    drag_offset = drag_origin - mouse_world_pos;
-                }
-            }
-        }
-    } else {
-        camera_main.dragging = None;
-    }
-
     let transition_speed = 4.0 * time.delta_seconds();
+
+    let old_zoom = camera_main.zoom;
 
     // Update 
     match camera_settings.camera_mode {
         CameraMode::Star => {
             let speed: f32 = GalaxyConfig::AU_SCALE * 6.0 * time.delta_seconds();
-            camera_main.star_local_pos += drag_offset+ key_delta * speed;
+            camera_main.star_local_pos += key_delta * speed;
 
             if camera_main.star_local_pos.length() > camera_main.system_radius {
                 camera_main.star_local_pos = camera_main.star_local_pos.normalize() * camera_main.system_radius;
@@ -243,7 +232,7 @@ pub fn camera_control_system(
             camera_main.zoom = camera_main.zoom.clamp(0., 1.);
             let tzoom = camera_main.zoom * 0.85 + 0.15;        
             let speed: f32 = (tzoom* galaxy_scale) * 0.5 * time.delta_seconds();
-            camera_main.target_pos += drag_offset + key_delta * speed;
+            camera_main.target_pos += key_delta * speed;
             let d = camera_main.target_pos.xz().length();
             if d > galaxy_config.radius {
                 camera_main.target_pos *= galaxy_config.radius / d;
@@ -252,6 +241,28 @@ pub fn camera_control_system(
         }
     }
 
-    transform.translation = camera_main.translation(camera_main.adjusted_mode_transition(), galaxy_scale);
-    transform.look_at(camera_main.look_pos(camera_main.adjusted_mode_transition()), Vec3::Y);
+    // 
+    if camera_main.zoom != old_zoom && camera_main.dragging.is_none() {
+        camera_main.dragging = mouse_world_pos;
+    }
+
+    for i in 0..8 {
+        transform.translation = camera_main.translation(camera_main.adjusted_mode_transition(), galaxy_scale);
+        transform.look_at(camera_main.look_pos(camera_main.adjusted_mode_transition()), Vec3::Y);
+
+        let Some(mouse_pos) = cursor
+        .and_then(|cursor| cam.viewport_to_world(&GlobalTransform::from(*transform),cursor ))
+        .map(|ray| 
+            ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y))
+            .map(|distance|
+                ray.get_point(distance)
+            )
+        ).flatten() else { break };
+
+        if let Some(drag_origin) = camera_main.dragging {
+            let drag_offset = drag_origin - mouse_pos;
+            camera_main.target_pos += drag_offset;
+        }
+    }
+
 }
