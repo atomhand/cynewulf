@@ -137,9 +137,10 @@ fn resolve_proxies(
 
 fn update_hovered(
     mut selection : ResMut<Selection>,
-    galaxy_selectable_query : Query<&GalaxySelectable,>,
+    galaxy_selectable_query : Query<(&GalaxySelectable,&StarClaim)>,
     system_selectable_query : Query<&SystemSelectable>,
     selection_proxy_query : Query<&SelectionProxy>,
+    mouse_buttons : Res<ButtonInput<MouseButton>>,
     camera_settings : Res<CameraSettings>,
     hover_map : Res<HoverMap>
 ) {
@@ -162,6 +163,17 @@ fn update_hovered(
                 if let Ok(_selectable) = system_selectable_query.get(hovered_entity) {                    
                     selection.hovered = Some(hovered_entity);
                 }
+            }
+        }
+    }
+
+    if mouse_buttons.just_pressed(MouseButton::Right) {
+        if camera_settings.camera_mode == CameraMode::Galaxy 
+        && selection.hovered == selection.selected {
+            let Some((_,claim)) = selection.selected.map(|selected| galaxy_selectable_query.get(selected).ok()).flatten() else { return; };
+            
+            if let Some(empire) = claim.owner {
+                selection.selected = Some(empire);
             }
         }
     }
