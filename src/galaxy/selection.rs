@@ -17,11 +17,13 @@ impl Plugin for SelectionPlugin {
         app.insert_resource(Selection{
             hovered : None,
             selected : None,
+            hovered_empire : None,
+            selected_empire : None,
             selected_system : None,
             zoomed_system : None,
         })
             .add_systems(Update,selection_gizmos)
-            .add_systems(PreUpdate,(resolve_proxies,update_selection,update_hovered).chain().in_set(PickSet::PostFocus));
+            .add_systems(PreUpdate,(resolve_proxies,update_selection,update_hovered,update_selected_empire).chain().in_set(PickSet::PostFocus));
     }
 }
 
@@ -35,6 +37,7 @@ pub enum InterfaceIdentifier {
 
 pub enum SelectionState {
     None,
+    SemiHovered,
     Hovered,
     Selected,
     HoverSelected
@@ -45,6 +48,7 @@ impl SelectionState {
             SelectionState::None => Color::NONE,
             SelectionState::Hovered => Color::linear_rgba(1.0,165./255.,0., 1.0),
             SelectionState::Selected => Color::WHITE,
+            SelectionState::SemiHovered => Color::linear_rgb(0.3,0.3,0.3),
             SelectionState::HoverSelected => Color::linear_rgba(1.0,80./255.,0., 1.0),
         }
     }
@@ -54,6 +58,7 @@ impl SelectionState {
             SelectionState::None => def,
             SelectionState::Hovered => Color::linear_rgba(1.0,165./255.,0., 1.0),
             SelectionState::Selected => Color::WHITE,
+            SelectionState::SemiHovered => Color::linear_rgb(0.3,0.3,0.3),
             SelectionState::HoverSelected => Color::linear_rgba(1.0,80./255.,0., 1.0),
         }
     }
@@ -62,7 +67,9 @@ impl SelectionState {
 #[derive(Resource,Clone)]
 pub struct Selection {
     pub hovered : Option<Entity>,
-    pub selected : Option<Entity>,  
+    pub selected : Option<Entity>,
+    pub hovered_empire : Option<Entity>,
+    pub selected_empire : Option<Entity>,
     pub selected_system : Option<Entity>, // The system (or star) of the selected entity
     pub zoomed_system : Option<Entity>,
 }
@@ -72,12 +79,17 @@ impl Selection {
         let hovered = Some(entity) == self.hovered;
         let selected = Some(entity) == self.selected;
 
+        let empire_hovered = Some(entity) == self.hovered_empire;
+        let empire_selected = Some(entity) == self.selected_empire;
+
         if selected && hovered {
             SelectionState::HoverSelected
         } else if selected {
             SelectionState::Selected
         } else if hovered {
             SelectionState::Hovered
+        } else if empire_hovered || empire_selected {
+            SelectionState::SemiHovered
         } else {
             SelectionState::None
         }
@@ -176,6 +188,34 @@ fn update_hovered(
                 selection.selected = Some(empire);
             }
         }
+    }
+}
+
+pub fn update_selected_empire (
+    mut selection : ResMut<Selection>,
+    empire_query : Query<&Empire>,
+    star_query : Query<&StarClaim>
+) {
+    if let Some(selected) = selection.selected {
+        if empire_query.contains(selected) {
+            selection.selected_empire = Some(selected);
+        }
+        if let Ok(starclaim) = star_query.get(selected) {
+            selection.selected_empire = starclaim.owner;
+        }
+    } else {
+        selection.selected_empire = None;
+    }
+    
+    if let Some(hovered) = selection.hovered {
+        if empire_query.contains(hovered) {
+            selection.hovered_empire = Some(hovered);
+        }
+        if let Ok(starclaim) = star_query.get(hovered) {
+            selection.hovered_empire = starclaim.owner;
+        }
+    } else {
+        selection.hovered_empire = None;
     }
 }
 
