@@ -42,6 +42,7 @@ pub struct CameraMain {
     star_local_pos: Vec3,
     system_radius : f32,
     zoom: f32,
+    dragging : Option<Vec3>,
     pub mode_transition: f32
 }
 
@@ -53,6 +54,7 @@ impl Default for CameraMain {
             system_radius : 1.0,
             star_local_pos : Vec3::ZERO,
             star_pos : Vec3::ZERO,
+            dragging : None,
             mode_transition: 0.0,
         }
     }
@@ -124,17 +126,30 @@ fn smootherstep(edge0 : f32, edge1 : f32, x : f32) -> f32 {
 }
 
 pub fn camera_control_system(
-    mut query: Query<(&mut Transform, &mut CameraMain)>,
-    star_query: Query<&Star, Without<CameraMain>>,
+    mut query: Query<(&Camera, &GlobalTransform, &mut Transform, &mut CameraMain)>,
+    star_query: Query<&Star>,
+    windows : Query<&Window>,
     mut camera_settings : ResMut<CameraSettings>,
     keys: Res<ButtonInput<KeyCode>>,
+    mouse_buttons : Res<ButtonInput<MouseButton>>,
     time: Res<Time>,
     galaxy_config : Res<GalaxyConfig>,
     mut selection : ResMut<Selection>,
     mut scroll_evr: EventReader<MouseWheel>,
 ) {
     let galaxy_scale = galaxy_config.radius * 2.5;
-    let (mut transform, mut camera) = query.get_single_mut().expect("Error: Require ONE camera");
+    let (cam, camera_global_transform,mut transform,  mut camera_main) = query.get_single_mut().expect("Error: Require ONE camera");
+
+    let mouse_world_pos = windows
+        .single()
+        .cursor_position()
+        .and_then(|cursor| cam.viewport_to_world(camera_global_transform,cursor ))
+        .map(|ray| 
+            ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y))
+            .map(|distance|
+                ray.get_point(distance)
+            )
+        ).flatten();
 
     match camera_settings.camera_mode {
         CameraMode::Star => {            
@@ -145,21 +160,25 @@ pub fn camera_control_system(
             if wheel_ev < 0.0 || selection.zoomed_system == None {
                 camera_settings.camera_mode = CameraMode::Galaxy;
                 camera_settings.visibility_updated = false;
-                camera.target_pos = camera.star_pos;
+                camera_main.target_pos = camera_main.star_pos;
                 camera_settings.star = None;
-                camera.zoom = 0.0;
+                camera_main.zoom = 0.0;
                 selection.zoomed_system = None;
+                // reset camera drag to avoid weird stuff 
+                camera_main.dragging = None;
             }
         },
         CameraMode::Galaxy => {
             if let Some(star_ent) = selection.zoomed_system {
                 camera_settings.camera_mode = CameraMode::Star;
                 camera_settings.visibility_updated = false;
-                camera.star_local_pos = Vec3::ZERO;
+                camera_main.star_local_pos = Vec3::ZERO;
                 let star = star_query.get(star_ent).unwrap();
-                camera.star_pos = star.pos;
-                camera.system_radius = star.system_radius_actual();
+                camera_main.star_pos = star.pos;
+                camera_main.system_radius = star.system_radius_actual();
                 camera_settings.star = Some(star_ent);
+                // reset camera drag to avoid weird stuff
+                camera_main.dragging = None;
             }
         }
     }
@@ -179,42 +198,60 @@ pub fn camera_control_system(
         key_delta.x -= 1.0;
     }
 
+    let mut drag_offset = Vec3::ZERO;
+
+    if mouse_buttons.pressed(MouseButton::Middle) {
+        key_delta = Vec3::ZERO;
+        match camera_main.dragging {
+            None => {
+                camera_main.dragging = mouse_world_pos;
+            },
+            Some(drag_origin) => {
+                if let Some(mouse_world_pos) = mouse_world_pos {
+                    drag_offset = drag_origin - mouse_world_pos;
+                }
+            }
+        }
+    } else {
+        camera_main.dragging = None;
+    }
+
     let transition_speed = 4.0 * time.delta_seconds();
 
     // Update 
     match camera_settings.camera_mode {
         CameraMode::Star => {
             let speed: f32 = GalaxyConfig::AU_SCALE * 6.0 * time.delta_seconds();
-            camera.star_local_pos += key_delta * speed;
+            camera_main.star_local_pos += drag_offset+ key_delta * speed;
 
-            if camera.star_local_pos.length() > camera.system_radius {
-                camera.star_local_pos = camera.star_local_pos.normalize() * camera.system_radius;
+            if camera_main.star_local_pos.length() > camera_main.system_radius {
+                camera_main.star_local_pos = camera_main.star_local_pos.normalize() * camera_main.system_radius;
             }
-            camera.mode_transition = (camera.mode_transition  + transition_speed).min(1.0);
+            camera_main.mode_transition = (camera_main.mode_transition  + transition_speed).min(1.0);
         },
         CameraMode::Galaxy => {
             for ev in scroll_evr.read() {
                 match ev.unit {
                     MouseScrollUnit::Line => {
-                        camera.zoom -= ev.y * 0.05;
+                        camera_main.zoom -= ev.y * 0.05;
                     }
                     MouseScrollUnit::Pixel => {
-                        camera.zoom -= ev.y * 0.05;
+                        camera_main.zoom -= ev.y * 0.05;
                     }
                 }
             }        
-            camera.zoom = camera.zoom.clamp(0., 1.);
-            let tzoom = camera.zoom * 0.85 + 0.15;        
+            camera_main.zoom = camera_main.zoom.clamp(0., 1.);
+            let tzoom = camera_main.zoom * 0.85 + 0.15;        
             let speed: f32 = (tzoom* galaxy_scale) * 0.5 * time.delta_seconds();
-            camera.target_pos += key_delta * speed;
-            let d = camera.target_pos.xz().length();
+            camera_main.target_pos += drag_offset + key_delta * speed;
+            let d = camera_main.target_pos.xz().length();
             if d > galaxy_config.radius {
-                camera.target_pos *= galaxy_config.radius / d;
+                camera_main.target_pos *= galaxy_config.radius / d;
             }
-            camera.mode_transition = (camera.mode_transition - transition_speed).max(0.0);
+            camera_main.mode_transition = (camera_main.mode_transition - transition_speed).max(0.0);
         }
     }
 
-    transform.translation = camera.translation(camera.adjusted_mode_transition(), galaxy_scale);
-    transform.look_at(camera.look_pos(camera.adjusted_mode_transition()), Vec3::Y);
+    transform.translation = camera_main.translation(camera_main.adjusted_mode_transition(), galaxy_scale);
+    transform.look_at(camera_main.look_pos(camera_main.adjusted_mode_transition()), Vec3::Y);
 }
