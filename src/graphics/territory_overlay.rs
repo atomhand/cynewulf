@@ -138,26 +138,11 @@ fn update_overlays(
                 Srgba::new(0.0,0.0,0.0,0.0)
             };
 
-            let empire_hovered = (claim.owner.is_some() && claim.owner == selection.hovered);
-            let empire_selected = (claim.owner.is_some() && claim.owner == selection.selected);
+            let empire_halo_col = claim.owner.and_then(|empire| Some(selection.get_selection_state(empire).as_colour())).unwrap_or(Color::NONE);
+            let selection_halo = selection.get_selection_state(entity).as_colour();
     
-            let hovered = Some(entity) == selection.hovered;
-            let selected = Some(entity) == selection.selected;
-    
-            mat.star_data_buffer[tag.id as usize].system_halo = if hovered {               
-                Srgba::new(1.0,0.5,0.0,1.0)
-            } else if selected {                
-                Color::WHITE.into()
-            } else {                              
-                Color::NONE.into()
-            }.to_vec4();
-            mat.star_data_buffer[tag.id as usize].empire_halo = if empire_hovered {               
-                Srgba::new(1.0,0.5,0.0,1.0)
-            } else if empire_selected {                
-                Color::WHITE.into()
-            } else {                              
-                Color::NONE.into()
-            }.to_vec4();
+            mat.star_data_buffer[tag.id as usize].system_halo = selection_halo.to_linear().to_vec4();
+            mat.star_data_buffer[tag.id as usize].empire_halo = empire_halo_col.to_linear().to_vec4();
             mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
         }
     } else {
@@ -168,26 +153,11 @@ fn update_overlays(
                 Srgba::new(0.0,0.0,0.0,0.0)
             };
 
-            let empire_hovered = (claim.owner.is_some() && claim.owner == selection.hovered);
-            let empire_selected = (claim.owner.is_some() && claim.owner == selection.selected);
+            let empire_halo_col = claim.owner.and_then(|empire| Some(selection.get_selection_state(empire).as_colour())).unwrap_or(Color::NONE);
+            let selection_halo = selection.get_selection_state(entity).as_colour();
     
-            let hovered = Some(entity) == selection.hovered;
-            let selected = Some(entity) == selection.selected;
-    
-            mat.star_data_buffer[tag.id as usize].system_halo = if hovered {               
-                Srgba::new(1.0,0.5,0.0,1.0)
-            } else if selected {                
-                Color::WHITE.into()
-            } else {                              
-                Color::NONE.into()
-            }.to_vec4();
-            mat.star_data_buffer[tag.id as usize].empire_halo = if empire_hovered {               
-                Srgba::new(1.0,0.5,0.0,1.0)
-            } else if empire_selected {                
-                Color::WHITE.into()
-            } else {                              
-                Color::NONE.into()
-            }.to_vec4();
+            mat.star_data_buffer[tag.id as usize].system_halo = selection_halo.to_linear().to_vec4();
+            mat.star_data_buffer[tag.id as usize].empire_halo = empire_halo_col.to_linear().to_vec4();
             mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
         }
     }

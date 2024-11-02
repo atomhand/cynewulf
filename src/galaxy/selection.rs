@@ -33,12 +33,55 @@ pub enum InterfaceIdentifier {
     CurrentSystemOrbiter(u32),
 }
 
+pub enum SelectionState {
+    None,
+    Hovered,
+    Selected,
+    HoverSelected
+}
+impl SelectionState {
+    pub fn as_colour(&self) -> Color {
+        match *self {
+            SelectionState::None => Color::NONE,
+            SelectionState::Hovered => Color::linear_rgba(1.0,165./255.,0., 1.0),
+            SelectionState::Selected => Color::WHITE,
+            SelectionState::HoverSelected => Color::linear_rgba(1.0,80./255.,0., 1.0),
+        }
+    }
+    // this is for UI or whatever where you want unselected borders to be gray rather than blank
+    pub fn as_colour_with_default(&self, def : Color) -> Color {
+        match *self {
+            SelectionState::None => def,
+            SelectionState::Hovered => Color::linear_rgba(1.0,165./255.,0., 1.0),
+            SelectionState::Selected => Color::WHITE,
+            SelectionState::HoverSelected => Color::linear_rgba(1.0,80./255.,0., 1.0),
+        }
+    }
+}
+
 #[derive(Resource,Clone)]
 pub struct Selection {
     pub hovered : Option<Entity>,
-    pub selected : Option<Entity>,
+    pub selected : Option<Entity>,  
     pub selected_system : Option<Entity>, // The system (or star) of the selected entity
     pub zoomed_system : Option<Entity>,
+}
+
+impl Selection {
+    pub fn get_selection_state(&self, entity : Entity) -> SelectionState {
+        let hovered = Some(entity) == self.hovered;
+        let selected = Some(entity) == self.selected;
+
+        if selected && hovered {
+            SelectionState::HoverSelected
+        } else if selected {
+            SelectionState::Selected
+        } else if hovered {
+            SelectionState::Hovered
+        } else {
+            SelectionState::None
+        }
+    }
 }
 
 #[derive(Component)]
@@ -245,6 +288,7 @@ fn selection_gizmos(
             }
         },
         CameraMode::Galaxy => {
+            /* 
             if let Some(selected) = selection.selected_system {
                 if let Ok((selectable,transform)) = galaxy_selectable_query.get(selected) {
                     gizmos.circle(transform.translation(), Dir3::Y, selectable.radius * 0.9, Color::srgb(1.,0.4,0.));
@@ -255,6 +299,7 @@ fn selection_gizmos(
                     gizmos.circle(transform.translation(), Dir3::Y, selectable.radius, Color::WHITE);
                 }
             }
+            */
         }
     }
 }

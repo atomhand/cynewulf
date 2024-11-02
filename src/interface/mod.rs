@@ -25,17 +25,9 @@ fn selection_proxy_highlight(
     selection : Res<crate::galaxy::Selection>
 ) {
     for (mut border, proxy) in query.iter_mut() {
-        *border = if proxy.resolved_target == selection.hovered {
-            if proxy.resolved_target== selection.selected {
-                Color::srgb(1.0,80./255.,0.)
-            } else {
-                Color::WHITE
-            }
-        } else if proxy.resolved_target == selection.selected {
-            Color::srgb(1.0,165./255.,0.)
-        } else {
-            Color::srgb(0.1,0.1,0.1)
-        }.into();
+        *border = proxy.resolved_target.and_then(|target|
+            Some(selection.get_selection_state(target).as_colour_with_default(Color::linear_rgb(0.1,0.1,0.1)).into())
+        ).unwrap_or(Color::NONE.into());
     }
 }
 
