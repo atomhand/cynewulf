@@ -9,7 +9,7 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app : &mut App) {
         app.add_systems(Startup,spawn_camera)
-            .add_systems(Update,camera_control_system)
+            .add_systems(PostUpdate,camera_control_system)
             .insert_resource(CameraSettings::default());
     }
 }
@@ -125,7 +125,7 @@ fn smootherstep(edge0 : f32, edge1 : f32, x : f32) -> f32 {
 pub fn camera_control_system(
     mut query: Query<(&Camera, &mut Transform, &mut CameraMain)>,
     star_query: Query<&Star>,
-    windows : Query<&Window>,
+    mut windows : Query<&mut Window>,
     mut camera_settings : ResMut<CameraSettings>,
     keys: Res<ButtonInput<KeyCode>>,
     mouse_buttons : Res<ButtonInput<MouseButton>>,
@@ -133,9 +133,13 @@ pub fn camera_control_system(
     galaxy_config : Res<GalaxyConfig>,
     mut selection : ResMut<Selection>,
     mut scroll_evr: EventReader<MouseWheel>,
+    mut gizmos : Gizmos,
 ) {
     let galaxy_scale = galaxy_config.radius * 2.5;
     let (cam, mut transform,  mut camera_main) = query.get_single_mut().expect("Error: Require ONE camera");
+
+    // HIDE CURSOR
+    //windows.single_mut().cursor.visible = false;
 
     let cursor = windows.single().cursor_position(); // cache this cause we will use it twice
     let mouse_world_pos = cursor
@@ -246,7 +250,8 @@ pub fn camera_control_system(
         camera_main.dragging = mouse_world_pos;
     }
 
-    for i in 0..8 {
+    for i in 0..2
+    {
         transform.translation = camera_main.translation(camera_main.adjusted_mode_transition(), galaxy_scale);
         transform.look_at(camera_main.look_pos(camera_main.adjusted_mode_transition()), Vec3::Y);
 
@@ -257,12 +262,23 @@ pub fn camera_control_system(
             .map(|distance|
                 ray.get_point(distance)
             )
-        ).flatten() else { break };
+        ).flatten() else { return };
 
         if let Some(drag_origin) = camera_main.dragging {
             let drag_offset = drag_origin - mouse_pos;
+
             camera_main.target_pos += drag_offset;
         }
+
+        transform.translation = camera_main.translation(camera_main.adjusted_mode_transition(), galaxy_scale);
+        transform.look_at(camera_main.look_pos(camera_main.adjusted_mode_transition()), Vec3::Y);
+    
+    if i == 1 {
+
+        gizmos.sphere(mouse_pos, Quat::IDENTITY, 1.0, Color::linear_rgb(1.0,0.0,0.0));
     }
+    }
+
+    
 
 }
