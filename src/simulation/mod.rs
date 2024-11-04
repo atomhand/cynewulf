@@ -3,10 +3,8 @@ use bevy::ecs::schedule::ScheduleLabel;
 mod time;
 mod orbits;
 mod demography_system;
-mod vizier;
 
 mod mission;
-mod agenda;
 
 pub mod fleet_behaviour;
 
@@ -71,7 +69,11 @@ impl SimulationSettings {
 pub struct SimulationPlugin;
 
 #[derive(ScheduleLabel,Debug,Hash,PartialEq,Eq,Clone)]
-struct SimulationSchedule;
+pub struct SimPreTick;
+#[derive(ScheduleLabel,Debug,Hash,PartialEq,Eq,Clone)]
+pub struct SimTick;
+#[derive(ScheduleLabel,Debug,Hash,PartialEq,Eq,Clone)]
+pub struct SimPostTick;
 
 fn simulation_tick_system(world : &mut World) {
     let delta_seconds = world.resource::<Time>().delta_seconds();
@@ -82,7 +84,7 @@ fn simulation_tick_system(world : &mut World) {
 
         if sim_settings.time_since_tick > tick_interval {
             sim_settings.time_since_tick = (sim_settings.time_since_tick - tick_interval).min(0.0);
-            world.run_schedule(SimulationSchedule);
+            world.run_schedule(SimTick);
         }
     }
 }
@@ -93,7 +95,7 @@ use fleet_behaviour::colonisation;
 impl Plugin for SimulationPlugin {
     fn build(&self, app : &mut App) {
 
-        let mut simulation_schedule = Schedule::new(SimulationSchedule);
+        let mut simulation_schedule = Schedule::new(SimTick);
         // This needs to be split into multiple schedules at some point
         simulation_schedule.add_systems((
             time::tick_date_system,
@@ -101,6 +103,7 @@ impl Plugin for SimulationPlugin {
             demography_system::update_population,
             (navigation::navigation_update_nav_system,
             colonisation::nav_find_colony_target_system,
+            colonisation::nav_update_task_system,
             colonisation::process_colonise_events).chain()
         ));
 
@@ -108,6 +111,7 @@ impl Plugin for SimulationPlugin {
             .insert_resource(SimulationSettings{ mode : SimulationMode::Normal, paused : true, time_since_tick : 0.0})
             .add_schedule(simulation_schedule)
             .add_systems(Update,(simulation_tick_system,crate::galaxy::fleet::fleet_preview_gizmos))
+            .add_plugins(mission::planet_launch_colony::PlanetAutoColonyMissionPlugin)
             .add_event::<colonisation::ColonisePlanetEvent>();
     }
 }

@@ -7,6 +7,12 @@ pub struct Fleet {
     pub owner : Entity
 }
 
+#[derive(Component)]
+pub struct FleetColonyCrew {
+    pub colonists : i64,
+    pub destination : Option<Entity>
+}
+
 #[derive(Component,Default)]
 pub struct SystemFleetInfo {
     pub fleets : Vec<Entity>
