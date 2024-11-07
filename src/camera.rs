@@ -125,7 +125,7 @@ fn smootherstep(edge0 : f32, edge1 : f32, x : f32) -> f32 {
 pub fn camera_control_system(
     mut query: Query<(&Camera, &mut Transform, &mut CameraMain)>,
     star_query: Query<&Star>,
-    mut windows : Query<&mut Window>,
+    windows : Query<&Window>,
     mut camera_settings : ResMut<CameraSettings>,
     keys: Res<ButtonInput<KeyCode>>,
     mouse_buttons : Res<ButtonInput<MouseButton>>,
@@ -141,7 +141,9 @@ pub fn camera_control_system(
     // HIDE CURSOR
     //windows.single_mut().cursor.visible = false;
 
-    let cursor = windows.single().cursor_position(); // cache this cause we will use it twice
+    let Ok(window) = windows.get_single() else { return; };
+
+    let cursor = window.cursor_position(); // cache this cause we will use it twice
     let mouse_world_pos = cursor
         .and_then(|cursor| cam.viewport_to_world(&GlobalTransform::from(*transform),cursor ))
         .map(|ray| 
