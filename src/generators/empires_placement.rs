@@ -65,7 +65,7 @@ pub fn place_star_empires(mut commands : Commands,
 
         if let Some((planet_entity,star_entity,score)) = best {
             if score > 0 {
-                let new_empire = commands.spawn(Empire::random(&mut rng, &mut used_planet_names)).id();
+                let new_empire = commands.spawn(Empire::random(&mut rng, &hypernet, &mut used_planet_names)).id();
 
                 // ~~ temp
                 // give the player an empire
@@ -84,7 +84,14 @@ pub fn place_star_empires(mut commands : Commands,
                 claimed_systems.insert(star_entity);
                 claimed_ids.push(star.node_id);
 
-                commands.spawn(crate::galaxy::fleet::FleetBundle::new(new_empire, star.node_id));
+                // TESTING - CLAIM THE UNIVERSE
+                /* 
+                for (star_entity,_star, mut star_claim) in star_query.iter_mut() {
+                    if claimed_systems.contains(&star_entity) { continue; }        
+                    claimed_systems.insert(star_entity);
+                    star_claim.owner = Some(new_empire);
+                }
+                */
             }
         }
     }    

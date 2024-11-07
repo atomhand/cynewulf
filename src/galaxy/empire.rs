@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use rand::prelude::*;
+use super::navigation_filter::NavigationMask;
+use crate::prelude::*;
 
 use crate::generators::markov_chain::{UsedPlanetNames,PlanetNameGenerator};
 
@@ -10,16 +12,28 @@ pub struct Empire {
     pub namegen : PlanetNameGenerator
 }
 
+#[derive(Bundle)]
+pub struct EmpireBundle {
+    empire : Empire,
+    nav_mask : NavigationMask
+}
+
 impl Empire {
-    pub fn random(rng : &mut ThreadRng, used_planet_names : &mut UsedPlanetNames) -> Self {
+    pub fn random(rng : &mut ThreadRng, hypernet : &Hypernet, used_planet_names : &mut UsedPlanetNames) -> EmpireBundle {
         let mut namegen = PlanetNameGenerator::new(used_planet_names);
-        Self {
-            color : Color::srgb(rng.gen(),rng.gen(),rng.gen()),
-            name : namegen.next(used_planet_names),
-            namegen : namegen,
+
+
+        EmpireBundle {
+            empire : Self {
+                color : Color::srgb(rng.gen(),rng.gen(),rng.gen()),
+                name : namegen.next(used_planet_names),
+                namegen : namegen,
+            },
+            nav_mask : NavigationMask::new(hypernet)
         }
     }
 }
+
 
 #[derive(Resource)]
 pub struct PlayerEmpire {

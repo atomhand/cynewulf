@@ -14,6 +14,8 @@ pub use galaxy_config::GalaxyConfig;
 mod hypernet_pathfinding;
 pub use hypernet_pathfinding::Pathfinding;
 
+pub mod navigation_filter;
+
 pub mod description;
 pub use description::Description;
 

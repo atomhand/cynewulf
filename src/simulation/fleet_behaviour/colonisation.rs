@@ -28,24 +28,52 @@ pub fn nav_update_task_system(
     }
 }
 
+use crate::galaxy::navigation_filter::{NavigationFilter,NavigationMask};
+
 pub fn nav_find_colony_target_system(
-    mut nav_query : Query<(&mut NavPosition, &mut FleetColonyCrew)>,
+    mut nav_query : Query<(&mut NavPosition, &Fleet, &mut FleetColonyCrew)>,
     system_query : Query<(&Star,&StarClaim)>,
     planet_query : Query<(&Planet,Entity), Without<Colony>>,
+    nav_masks : Query<&NavigationMask>,
     hypernet : Res<Hypernet>,
 ){
 
     nav_query
         .par_iter_mut()
         .batching_strategy(BatchingStrategy::fixed(32))
-        .for_each(|(nav_pos,mut colony_fleet)|
+        .for_each(|(nav_pos, fleet, mut colony_fleet)|
     {
         if colony_fleet.destination.is_some() { return; };
 
         let mut rng = rand::thread_rng();
 
         let mut best_option : Option<(Entity)> = None;
-        let mut best_dist = usize::MAX;
+        let mut best_dist = i32::MAX;
+
+        let empire = fleet.owner;
+
+        let nav_mask = nav_masks.get(empire).expect("Nav find colony target: Can't find empire nav mask");
+    
+        let nav_filter = nav_mask.to_filter(&hypernet);
+
+        let dijkstra = nav_filter.dijkstra(&vec![nav_pos.root_system]);
+
+        for star_id in 0..dijkstra.len() {
+            let Some(d) = dijkstra[star_id] else { continue; };
+
+            let Ok((star,starclaim)) = system_query.get(hypernet.node(star_id as u32).star) else { continue; };
+
+            if starclaim.owner != None && starclaim.owner != Some(empire) { continue; }
+
+            let Some((_planet,planet_entity)) = star.orbiters.iter().filter_map(|x| planet_query.get(*x).ok()).choose(&mut rng) else { continue; };
+
+            if d < best_dist {
+                best_dist = d;
+                best_option = Some(planet_entity);
+            }
+        }
+
+        /* 
         for(star,starclaim) in system_query.iter() {
             if let Some(_star_owner) = starclaim.owner {
                 continue;
@@ -63,6 +91,7 @@ pub fn nav_find_colony_target_system(
                 }
             }
         }
+        */
 
         if let Some(planet_entity) = best_option {
             colony_fleet.destination = Some(planet_entity);

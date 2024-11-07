@@ -84,6 +84,7 @@ fn simulation_tick_system(world : &mut World) {
 
         if sim_settings.time_since_tick > tick_interval {
             sim_settings.time_since_tick = (sim_settings.time_since_tick - tick_interval).min(0.0);
+            world.run_schedule(SimPreTick);
             world.run_schedule(SimTick);
         }
     }
@@ -107,9 +108,15 @@ impl Plugin for SimulationPlugin {
             colonisation::process_colonise_events).chain()
         ));
 
+        let mut pre_tick_schedule = Schedule::new(SimPreTick);
+        pre_tick_schedule.add_systems(
+            crate::galaxy::navigation_filter::update_empire_navigation_masks
+        );
+
         app.insert_resource(SimTime::new())
             .insert_resource(SimulationSettings{ mode : SimulationMode::Normal, paused : true, time_since_tick : 0.0})
             .add_schedule(simulation_schedule)
+            .add_schedule(pre_tick_schedule)
             .add_systems(Update,(simulation_tick_system,crate::galaxy::fleet::fleet_preview_gizmos))
             .add_plugins(mission::planet_launch_colony::PlanetAutoColonyMissionPlugin)
             .add_event::<colonisation::ColonisePlanetEvent>();
