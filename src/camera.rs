@@ -133,7 +133,7 @@ pub fn camera_control_system(
     galaxy_config : Res<GalaxyConfig>,
     mut selection : ResMut<Selection>,
     mut scroll_evr: EventReader<MouseWheel>,
-    mut gizmos : Gizmos,
+    //mut gizmos : Gizmos,
 ) {
     let galaxy_scale = galaxy_config.radius * 2.5;
     let (cam, mut transform,  mut camera_main) = query.get_single_mut().expect("Error: Require ONE camera");
@@ -252,7 +252,7 @@ pub fn camera_control_system(
         camera_main.dragging = mouse_world_pos;
     }
 
-    for i in 0..2
+    for _i in 0..2
     {
         transform.translation = camera_main.translation(camera_main.adjusted_mode_transition(), galaxy_scale);
         transform.look_at(camera_main.look_pos(camera_main.adjusted_mode_transition()), Vec3::Y);
@@ -275,10 +275,12 @@ pub fn camera_control_system(
         transform.translation = camera_main.translation(camera_main.adjusted_mode_transition(), galaxy_scale);
         transform.look_at(camera_main.look_pos(camera_main.adjusted_mode_transition()), Vec3::Y);
     
-    if i == 1 {
+        /* MOUSE LATENCY TESTING GIZMO
+        if i == 1 {
 
-        gizmos.sphere(mouse_pos, Quat::IDENTITY, 1.0, Color::linear_rgb(1.0,0.0,0.0));
-    }
+            gizmos.sphere(mouse_pos, Quat::IDENTITY, 1.0, Color::linear_rgb(1.0,0.0,0.0));
+        }
+        */
     }
 
     
