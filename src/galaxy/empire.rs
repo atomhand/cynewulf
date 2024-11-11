@@ -29,7 +29,7 @@ impl Empire {
                 name : namegen.next(used_planet_names),
                 namegen : namegen,
             },
-            nav_mask : NavigationMask::new(hypernet)
+            nav_mask : NavigationMask::new(hypernet, true)
         }
     }
 }

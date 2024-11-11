@@ -126,7 +126,7 @@ pub fn navigation_update_nav_system(
     //    - An action like Move is consumed and creates an analogue action on the execution slot
     //    - An action like "Reach Destination" pushes new Move&Jump actions to the front of the queue, and isn't actually removed (unless the destination has been reached..)
 
-    let blank_mask = NavigationMask::new(&hypernet);
+    let blank_mask = NavigationMask::new(&hypernet, true);
     let blank_filter = blank_mask.to_filter(&hypernet);
 
     for(mut nav_pos, mut nav, mut fleet, fleet_entity) in nav_query.iter_mut() {
@@ -268,8 +268,10 @@ pub fn navigation_update_nav_system(
         // - An action like Move is consumed and creates an analogue action on the execution slot
         // - An action like "Reach Destination" pushes new Move&Jump actions to the front of the queue, and isn't actually removed (unless the destination has been reached..)
 
+        let mut iter = 0;
         while let Action::Idle = nav.action {
             assert!(if let NavOffset::Star(_) = nav_pos.offset { true } else {false }, "Navigation: It is invalid for a fleet to be marked Idle while in hyperlane transit!");
+
 
             // If there is no plan, we are idle.
             if nav.plan_queue.is_empty() {
@@ -277,6 +279,19 @@ pub fn navigation_update_nav_system(
             }
 
             let top = nav.plan_queue[nav.plan_queue.len()-1];
+            
+            if iter > 8 {
+                let modestring = match top {
+                    Plan::Jump(_) => "Jump",
+                    Plan::Colonise(_) => "Colonise",
+                    Plan::ReachHomeEmpire => "ReachHomEmpire",
+                    Plan::ReachPoint(_) =>"ReachPoint",
+                    Plan::ReachSystem(_) => "ReachSystem"
+                };
+                info!("trapped in loop, iter {}, mode: {}", iter, modestring);
+            }
+
+            iter += 1;
             match top {
                 Plan::Jump(dest_system_id) => {
                     let next_system_node = hypernet.star(dest_system_id);
@@ -326,10 +341,12 @@ pub fn navigation_update_nav_system(
                 },
                 Plan::ReachHomeEmpire => {
                     info!("Stranded, trying to get home!");
+                    assert!(mask.owned_systems.len() > 0, "fleet's owner owned systems mask cannot be empty");
                     if let Some(mut path) = blank_filter.find_path_multi_source(&mask.owned_systems,nav_pos.root_system) {
                         path.reverse();
                         
                         if path.nodes.len() > 1 {
+                            assert!(path.nodes[0] == nav_pos.root_system, "Path origin must be current system!");
                             let next_system = path.nodes[1];
                             let next_system_node = hypernet.star(next_system);
                             let root_system_node = hypernet.star(nav_pos.root_system);
@@ -345,7 +362,7 @@ pub fn navigation_update_nav_system(
                         }
                     } else {
                         // THIS is an error state...
-                        debug!("ReachHomeEmpire ... can't find path home. (THIS SHOULD NOT BE POSSIBLE...)");
+                        panic!("ReachHomeEmpire ... can't find path home. (THIS SHOULD NOT BE POSSIBLE...)");
                     }
                 },
                 Plan::ReachSystem(dest_system_id) =>  {

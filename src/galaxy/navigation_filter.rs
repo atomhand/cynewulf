@@ -32,9 +32,9 @@ pub struct NavigationMask {
 }
 
 impl<'a> NavigationMask {
-    pub fn new(hypernet : &Hypernet) -> Self {
+    pub fn new(hypernet : &Hypernet, default_passable : bool) -> Self {
         Self {
-            passable_systems_mask : vec![false; hypernet.graph.node_count()],
+            passable_systems_mask : vec![default_passable; hypernet.graph.node_count()],
             owned_systems : Vec::new()
         }
     }
