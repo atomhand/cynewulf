@@ -16,12 +16,17 @@ impl Path {
             edges : Vec::new()
         }
     }
+
+    pub fn reverse(&mut self) {
+        self.nodes.reverse();
+        self.edges.reverse();
+    }
 }
 
 pub trait Pathfinding {
     fn find_path_without_direct_edge(&self, a : u32, b : u32) -> Option<Path>;
 
-    fn find_path_multi_source(&self, sources : Vec<u32>, b : u32) -> Option<Path>;
+    fn find_path_multi_source(&self, sources : &Vec<u32>, b : u32) -> Option<Path>;
     fn find_path(&self, a : u32, b : u32) -> Option<Path>;
 
     fn dijkstra(&self, input_points : &Vec<u32>) -> Vec<Option<i32>>;
@@ -152,7 +157,7 @@ impl Pathfinding for super::Hypernet {
         }
     }
     
-    fn find_path_multi_source(&self, sources : Vec<u32>, star_b : u32,) -> Option<Path> {
+    fn find_path_multi_source(&self, sources : &Vec<u32>, star_b : u32,) -> Option<Path> {
         let sources_set : std::collections::HashSet<u32> = std::collections::HashSet::from_iter(sources.iter().cloned());
         if sources_set.contains(&star_b) { return Some(Path { nodes : vec![star_b], edges : Vec::new() }); };
         let (n,_) = self.graph.capacity();
@@ -164,13 +169,13 @@ impl Pathfinding for super::Hypernet {
 
         for source_star in sources {
             open.push(PathfindingNode{
-                star : source_star,
-                parent : source_star,
+                star : *source_star,
+                parent : *source_star,
                 edge_to_parent : u32::MAX,
                 origin_dist : 0,
-                heuristic_val : (self.graph.node_weight(source_star.into()).unwrap().pos.distance(dest_pos)  * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32) as i32
+                heuristic_val : (self.graph.node_weight((*source_star).into()).unwrap().pos.distance(dest_pos)  * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32) as i32
             });
-            closed[source_star as usize] = true;
+            closed[*source_star as usize] = true;
         }    
     
         while let Some(top) = open.pop() {

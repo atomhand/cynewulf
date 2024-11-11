@@ -8,10 +8,18 @@ pub fn update_empire_navigation_masks(
     systems : Query<(&Star,&StarClaim)>
 ) {
     for (empire_entity, mut mask) in query.iter_mut() {
+        mask.owned_systems.clear();
         for (star,starclaim) in systems.iter() {
-            mask.systems_mask[star.node_id as usize] = match starclaim.owner {
-                None => true,
-                Some(entity) => entity == empire_entity
+            match starclaim.owner {
+                None => {
+                    mask.passable_systems_mask[star.node_id as usize] = true
+                },
+                Some(entity) => {
+                    if entity == empire_entity {
+                        mask.passable_systems_mask[star.node_id as usize] = true;
+                        mask.owned_systems.push(star.node_id);
+                    }
+                }
             }
         }
     }
@@ -19,13 +27,15 @@ pub fn update_empire_navigation_masks(
 
 #[derive(Component)]
 pub struct NavigationMask {
-    systems_mask : Vec<bool>
+    passable_systems_mask : Vec<bool>,
+    pub owned_systems : Vec<u32>,
 }
 
 impl<'a> NavigationMask {
     pub fn new(hypernet : &Hypernet) -> Self {
         Self {
-            systems_mask : vec![false; hypernet.graph.node_count()]
+            passable_systems_mask : vec![false; hypernet.graph.node_count()],
+            owned_systems : Vec::new()
         }
     }
 
@@ -44,7 +54,7 @@ pub struct NavigationFilter<'a> {
 
 impl<'a> NavigationFilter<'a> {
     fn is_passable(&self, index : usize) -> bool {
-        self.mask.systems_mask[index]
+        self.mask.passable_systems_mask[index]
     }
 }
 
@@ -227,7 +237,7 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
         }
     }
     
-    fn find_path_multi_source(&self, sources : Vec<u32>, star_b : u32,) -> Option<Path> {
+    fn find_path_multi_source(&self, sources : &Vec<u32>, star_b : u32,) -> Option<Path> {
         let sources_set : std::collections::HashSet<u32> = std::collections::HashSet::from_iter(sources.iter().cloned());
         if sources_set.contains(&star_b) { return Some(Path { nodes : vec![star_b], edges : Vec::new() }); };
         let (n,_) = self.hypernet.graph.capacity();
@@ -239,13 +249,13 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
 
         for source_star in sources {
             open.push(PathfindingNode{
-                star : source_star,
-                parent : source_star,
+                star : *source_star,
+                parent : *source_star,
                 edge_to_parent : u32::MAX,
                 origin_dist : 0,
-                heuristic_val : (self.hypernet.graph.node_weight(source_star.into()).unwrap().pos.distance(dest_pos)  * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32) as i32
+                heuristic_val : (self.hypernet.graph.node_weight((*source_star).into()).unwrap().pos.distance(dest_pos)  * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32) as i32
             });
-            closed[source_star as usize] = true;
+            closed[*source_star as usize] = true;
         }    
     
         while let Some(top) = open.pop() {

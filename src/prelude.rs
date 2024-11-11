@@ -6,6 +6,8 @@ pub use crate::galaxy::{
     StarClaim,
     Fleet,
     colony::{Economy,Colony},
+    navigation_filter::{NavigationMask,NavigationFilter},
+    galaxy_index::{GalaxyIndex,PlanetHandle,StarHandle}
 };
 
 pub use crate::galaxy::{

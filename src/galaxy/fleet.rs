@@ -4,7 +4,8 @@ use crate::prelude::*;
 
 #[derive(Component)]
 pub struct Fleet {
-    pub owner : Entity
+    pub owner : Entity,
+    pub time_since_last_jump : u32
 }
 
 #[derive(Component)]
@@ -29,6 +30,7 @@ impl FleetBundle {
     pub fn new(owner : Entity, system : u32) -> Self {
         Self {
             fleet : Fleet {
+                time_since_last_jump : 0,
                 owner
             },
             nav_position : NavPosition {
@@ -38,6 +40,7 @@ impl FleetBundle {
             navigator : Navigator {
                 plan_queue : Vec::new(),
                 action : Action::Idle,
+                stranded_go_home : false,
                 speed : GalaxyConfig::AU_SCALE * 0.5,
                 hyperspeed : 10000
             }

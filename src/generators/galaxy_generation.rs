@@ -13,7 +13,8 @@ use crate::galaxy::OverlaysTriangulationVertex;
 
 pub fn setup_stars(mut commands : Commands,
     galaxy_config : Res<GalaxyConfig>,
-    mut hypernet : ResMut<Hypernet>
+    mut hypernet : ResMut<Hypernet>,
+    mut galaxy_index : ResMut<GalaxyIndex>
 ) {
     let mut rng = rand::thread_rng();
     let mut points : Vec<Point> = Vec::with_capacity(galaxy_config.max_stars as usize);
@@ -99,12 +100,20 @@ pub fn setup_stars(mut commands : Commands,
                 VisibilityBundle::default()
             )).id();
 
+            let star_handle = galaxy_index.register_star(parent, node_id.index());
+            commands.entity(parent).insert(star_handle);
+
             star.orbiters.push(parent);
             star.orbiters.extend_from_slice(planets.as_slice());
 
-            hypernet.graph.node_weight_mut(node_id).unwrap().star = parent;
+            hypernet.graph.node_weight_mut(node_id).unwrap().star = Some(star_handle);
     
             commands.entity(parent).insert(star).push_children(&planets);
+
+            for p in planets {
+                let planet_handle = galaxy_index.register_planet(star_handle, p);
+                commands.entity(p).insert(planet_handle);
+            }
         } else {
             commands.spawn((
                 OverlaysTriangulationVertex{ node_id : node_id.index() as u32 },

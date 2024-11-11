@@ -5,6 +5,8 @@ mod picking_backend;
 pub mod fleet;
 pub use fleet::Fleet;
 
+pub mod galaxy_index;
+
 pub mod selection;
 pub use selection::Selection;
 
@@ -39,6 +41,7 @@ impl Plugin for GalaxySetupPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((selection::SelectionPlugin, picking_backend::PickingBackendPlugin))
             .insert_resource(GalaxyConfig::default())
+            .insert_resource(galaxy_index::GalaxyIndex::default())
             .insert_resource(Hypernet::new())
             .insert_resource(empire::PlayerEmpire { empire : None })
             //.insert_resource(SelectedObject{hovered_star : None})

@@ -10,14 +10,14 @@ use std::collections::HashSet;
 #[derive(Clone)]
 pub struct Hypernode {
     pub pos : Vec3,
-    pub star : Entity
+    pub star : Option<StarHandle>
 }
 
 impl Hypernode {
     fn new(pos : Vec3) -> Self {
         Self {
             pos,
-            star : Entity::PLACEHOLDER
+            star : None
         }
     }
 }
@@ -43,7 +43,9 @@ impl Hypernet {
     pub fn num_lanes(&self) -> i32 {
         self.graph.edge_count() as i32
     }
-
+    pub fn star(&self, id : u32) -> StarHandle {
+        self.graph.node_weight(id.into()).unwrap().star.unwrap()
+    }
     pub fn node(&self, id : u32) -> &Hypernode {
         self.graph.node_weight(id.into()).unwrap()
     }

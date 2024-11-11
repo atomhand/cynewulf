@@ -33,7 +33,7 @@ use crate::galaxy::navigation_filter::{NavigationFilter,NavigationMask};
 pub fn nav_find_colony_target_system(
     mut nav_query : Query<(&mut NavPosition, &Fleet, &mut FleetColonyCrew)>,
     system_query : Query<(&Star,&StarClaim)>,
-    planet_query : Query<(&Planet,Entity), Without<Colony>>,
+    planet_query : Query<(&Planet,Entity,Option<&Colony>)>,
     nav_masks : Query<&NavigationMask>,
     hypernet : Res<Hypernet>,
 ){
@@ -43,11 +43,30 @@ pub fn nav_find_colony_target_system(
         .batching_strategy(BatchingStrategy::fixed(32))
         .for_each(|(nav_pos, fleet, mut colony_fleet)|
     {
-        if colony_fleet.destination.is_some() { return; };
+        if let Some(dest) = colony_fleet.destination {
+            // don't do validation calculations needlessly often
+            if fleet.time_since_last_jump % 40 == 0 {
+                let empire = fleet.owner;
+                let nav_mask = nav_masks.get(empire).expect("Nav find colony target: Can't find empire nav mask");            
+                let nav_filter = nav_mask.to_filter(&hypernet);
+
+                let (dest_planet,_entity, colony) = planet_query.get(dest).unwrap();
+
+                let path = nav_filter.find_path(nav_pos.root_system,dest_planet.star_id);
+
+                if path.is_none() {
+                    colony_fleet.destination = None;
+                } else {
+                    return;
+                }
+            } else {
+                return;
+            }
+        };
 
         let mut rng = rand::thread_rng();
 
-        let mut best_option : Option<(Entity)> = None;
+        let mut best_option : Option<Entity> = None;
         let mut best_dist = i32::MAX;
 
         let empire = fleet.owner;
@@ -61,14 +80,20 @@ pub fn nav_find_colony_target_system(
         for star_id in 0..dijkstra.len() {
             let Some(d) = dijkstra[star_id] else { continue; };
 
-            let Ok((star,starclaim)) = system_query.get(hypernet.node(star_id as u32).star) else { continue; };
+            let Ok((star,starclaim)) = system_query.get(hypernet.star(star_id as u32).entity) else { continue; };
 
             if starclaim.owner != None && starclaim.owner != Some(empire) { continue; }
 
-            let Some((_planet,planet_entity)) = star.orbiters.iter().filter_map(|x| planet_query.get(*x).ok()).choose(&mut rng) else { continue; };
+            let Some((_planet,planet_entity, colony)) = star.orbiters.iter().filter_map(|x| planet_query.get(*x).ok()).choose(&mut rng) else { continue; };
 
-            if d < best_dist {
-                best_dist = d;
+            let weight = if let Some(colony) = colony {
+                i32::MAX //d //* 10 * i64::min(10000,colony.population.val() / 10000) as i32
+            } else {
+                d
+            };
+
+            if weight < best_dist {
+                best_dist = weight;
                 best_option = Some(planet_entity);
             }
         }

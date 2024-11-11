@@ -73,6 +73,7 @@ impl NavPosition {
 pub struct Navigator {
     pub action : Action,
     pub plan_queue : Vec<Plan>,
+    pub stranded_go_home : bool,
     pub speed : f32,
     pub hyperspeed : i32
 }
@@ -88,6 +89,7 @@ pub enum Action {
 #[derive(Clone,Copy)]
 pub enum Plan {
     ReachSystem(u32),
+    ReachHomeEmpire,
     ReachPoint(Vec3),
     Jump(u32),
     Colonise(Entity) // Planet
@@ -103,24 +105,35 @@ fn hyperlane_transit_point(star : &Star, other : Vec3) -> Vec3 {
 }
 
 pub fn navigation_update_nav_system(
-    mut nav_query : Query<(&mut NavPosition, &mut Navigator, Entity)>,
-    system_query : Query<(&Star,&StarClaim),Without<Navigator>>,
-    planet_query : Query<&Planet, Without<Navigator>>,
+    mut nav_query : Query<(&mut NavPosition, &mut Navigator, &mut Fleet, Entity)>,
+    system_query : Query<(&Star,&StarClaim)>,
+    planet_query : Query<&Planet>,
+    empire_query : Query<&NavigationMask,With<Empire>>,
     hypernet : Res<Hypernet>,
     mut ev_colonise : EventWriter<ColonisePlanetEvent>
 ) {
-    // 1. If we are in a hyperlane, update travel progress
-    // -- If we finished travelling, set location to the new system and mark that we're idle
-    // 2. If there is an active Action,
-    // -- check whether it is completed, or invalid. (In Which case trigger completion actions and potentially mark Idle - or eg. Jumping if the action automatically triggers a new one)
-    // -- Execute it (eg. if it's a movement action, move...)
-    // 3. If there is not an active Action, try to grab the next action. (This could come from the action queue, or from an automation policy)
-    // -- When an action is grabbed from the queue, the behaviour depends on the action
-    // - An action like Jump is consumed and attempts to execute immediately
-    // - An action like Move is consumed and creates an analogue action on the execution slot
-    // - An action like "Reach Destination" pushes new Move&Jump actions to the front of the queue, and isn't actually removed (unless the destination has been reached..)
+    // STEP 1 - RESOLVE MOVEMENT
+    //    If we are in a hyperlane, update travel progress
+    //    -- If we finished travelling, set location to the new system and mark that we're idle
+    // STEP 2 - EXECUTE CURRENT ACTION
+    //    If there is an active Action,
+    //    -- check whether it is completed, or invalid. (In Which case trigger completion actions and potentially mark Idle - or eg. Jumping if the action automatically triggers a new one)
+    //    -- Execute it (eg. if it's a movement action, move...)
+    // STEP 3 - POLL NEW ACTION
+    //    If there is not an active Action, try to grab the next action. (This could come from the action queue, or from an automation policy)
+    //    -- When an action is grabbed from the queue, the behaviour depends on the action
+    //    - An action like Jump is consumed and attempts to execute immediately
+    //    - An action like Move is consumed and creates an analogue action on the execution slot
+    //    - An action like "Reach Destination" pushes new Move&Jump actions to the front of the queue, and isn't actually removed (unless the destination has been reached..)
 
-    for(mut nav_pos, mut nav, fleet_entity) in nav_query.iter_mut() {
+    let blank_mask = NavigationMask::new(&hypernet);
+    let blank_filter = blank_mask.to_filter(&hypernet);
+
+    for(mut nav_pos, mut nav, mut fleet, fleet_entity) in nav_query.iter_mut() {
+        fleet.time_since_last_jump += 1;
+        let Ok(mask) = empire_query.get(fleet.owner) else { continue; };
+        let nav_filter = mask.to_filter(&hypernet);
+
         // 1. If we are in a hyperlane, update travel progress
         // -- If we finished travelling, set location to the new system and mark that we're idle
         if let NavOffset::Hyperlane(HyperlaneLocalPos {
@@ -129,15 +142,16 @@ pub fn navigation_update_nav_system(
             progress,
             distance
         }) = nav_pos.offset {
-            let star_a_node = hypernet.graph.node_weight(nav_pos.root_system.into()).unwrap();
-            let (star_a,_) = system_query.get(star_a_node.star).unwrap();
-            let star_b_node = hypernet.graph.node_weight(star_b.into()).unwrap();
-            let (star_b_ref,_) = system_query.get(star_b_node.star).unwrap();
+            let star_a_node = hypernet.star(nav_pos.root_system);
+            let (star_a,_) = system_query.get(star_a_node.entity).unwrap();
+            let star_b_node = hypernet.star(star_b);
+            let (star_b_ref,_) = system_query.get(star_b_node.entity).unwrap();
 
             let progress =progress + nav.hyperspeed;
 
             *nav_pos = if progress >= distance { // Finished Jumping
                 let hyperspace_exit_point = hyperlane_transit_point(star_b_ref, star_a.pos);
+                fleet.time_since_last_jump = 0;
                 NavPosition {
                     root_system : star_b,
                     offset : NavOffset::Star(hyperspace_exit_point)
@@ -154,6 +168,31 @@ pub fn navigation_update_nav_system(
                 }
             };
         }
+
+        // 1.5 CHECK STRANDED
+
+        if let NavOffset::Star(_) = nav_pos.offset {
+            let root_star_node = hypernet.star(nav_pos.root_system);
+            let (_,star_claim) = system_query.get(root_star_node.entity).unwrap();
+            
+            if let Some(star_owner) = star_claim.owner {
+                if star_owner != fleet.owner {
+                    if !nav.stranded_go_home {
+                        nav.stranded_go_home = true;
+                        nav.action = Action::Idle;
+                        nav.plan_queue.clear();
+                        nav.plan_queue.push(Plan::ReachHomeEmpire);
+                    }
+                } else {
+                    if nav.stranded_go_home {
+                        nav.action = Action::Idle;
+                        nav.plan_queue.clear();
+                    }
+                    nav.stranded_go_home = false;
+                }
+            }
+        }
+
         // 2. If there is an active Action,
         // -- check whether it is completed, or invalid. (In Which case trigger completion actions and potentially mark Idle - or eg. Jumping if the action automatically triggers a new one)
         // -- Execute it (eg. if it's a movement action, move...)
@@ -190,7 +229,6 @@ pub fn navigation_update_nav_system(
                         } 
                         if dur <= 0 {
                             // SEND COLONISATION EVENT
-                            info!("Colonising!");
                             ev_colonise.send(ColonisePlanetEvent {
                                 planet_entity,
                                 colony_fleet : fleet_entity
@@ -233,23 +271,20 @@ pub fn navigation_update_nav_system(
         while let Action::Idle = nav.action {
             assert!(if let NavOffset::Star(_) = nav_pos.offset { true } else {false }, "Navigation: It is invalid for a fleet to be marked Idle while in hyperlane transit!");
 
-            // FOR TESTING
-            // If there's no plan, make one!
+            // If there is no plan, we are idle.
             if nav.plan_queue.is_empty() {
                 break;
-
-                //let mut rng = rand::thread_rng();
-                //nav.plan_queue.push(Plan::ReachSystem(hypernet.graph.node_indices().choose(&mut rng).unwrap().index() as u32));
             }
 
             let top = nav.plan_queue[nav.plan_queue.len()-1];
             match top {
                 Plan::Jump(dest_system_id) => {
-                    let next_system_node = hypernet.graph.node_weight(dest_system_id.into()).unwrap();
-                    let root_system_node = hypernet.graph.node_weight(nav_pos.root_system.into()).unwrap();
-                    let (root_system_star,_) = system_query.get(root_system_node.star).unwrap();
+                    let next_system_node = hypernet.star(dest_system_id);
+                    let root_system_node = hypernet.star(nav_pos.root_system);
+                    let (root_system_star,_) = system_query.get(root_system_node.entity).unwrap();
+                    let (next_system_star,_) = system_query.get(next_system_node.entity).unwrap();
 
-                    let transit_point = hyperlane_transit_point(root_system_star, next_system_node.pos);
+                    let transit_point = hyperlane_transit_point(root_system_star, next_system_star.pos);
 
                     // An alternative (better) way to validate for robustness here would be for the Jump plan to store Origin as well as destination..
                     assert!(hypernet.graph.neighbors(nav_pos.root_system.into()).any(|x| x == dest_system_id.into()), "Navigation: Jump must target a neighbour in the hypernet!");
@@ -289,21 +324,46 @@ pub fn navigation_update_nav_system(
                     nav.plan_queue.pop();
                     nav.action = Action::Move(dest_point);
                 },
+                Plan::ReachHomeEmpire => {
+                    info!("Stranded, trying to get home!");
+                    if let Some(mut path) = blank_filter.find_path_multi_source(&mask.owned_systems,nav_pos.root_system) {
+                        path.reverse();
+                        
+                        if path.nodes.len() > 1 {
+                            let next_system = path.nodes[1];
+                            let next_system_node = hypernet.star(next_system);
+                            let root_system_node = hypernet.star(nav_pos.root_system);
+                            let (root_system_star,_) = system_query.get(root_system_node.entity).unwrap();
+                            let (next_system_star,_) = system_query.get(next_system_node.entity).unwrap();
+
+                            nav.plan_queue.push(Plan::Jump(next_system));
+                            nav.plan_queue.push(Plan::ReachPoint(hyperlane_transit_point(root_system_star, next_system_star.pos)));
+                        } else {
+                            // already there..
+                        info!("Made it home!");
+                            nav.plan_queue.pop();
+                        }
+                    } else {
+                        // THIS is an error state...
+                        debug!("ReachHomeEmpire ... can't find path home. (THIS SHOULD NOT BE POSSIBLE...)");
+                    }
+                },
                 Plan::ReachSystem(dest_system_id) =>  {
                     if dest_system_id == nav_pos.root_system { // We're already there, so we can consider this plan finished...
                         nav.plan_queue.pop();
                     } else {
-                        if let Some(path) = hypernet.find_path(nav_pos.root_system, dest_system_id) {
+                        if let Some(path) = nav_filter.find_path(nav_pos.root_system, dest_system_id) {
                             assert!(nav_pos.root_system == path.nodes[0], "path[0] doesn't match path origin!");
 
                             if path.nodes.len() > 1 {
                                 let next_system = path.nodes[1];
-                                let next_system_node = hypernet.graph.node_weight(next_system.into()).unwrap();
-                                let root_system_node = hypernet.graph.node_weight(nav_pos.root_system.into()).unwrap();
-                                let (root_system_star,_) = system_query.get(root_system_node.star).unwrap();
+                                let next_system_node = hypernet.star(next_system);
+                                let root_system_node = hypernet.star(nav_pos.root_system);
+                                let (root_system_star,_) = system_query.get(root_system_node.entity).unwrap();
+                                let (next_system_star,_) = system_query.get(next_system_node.entity).unwrap();
     
                                 nav.plan_queue.push(Plan::Jump(next_system));
-                                nav.plan_queue.push(Plan::ReachPoint(hyperlane_transit_point(root_system_star, next_system_node.pos)));
+                                nav.plan_queue.push(Plan::ReachPoint(hyperlane_transit_point(root_system_star, next_system_star.pos)));
                             } else {
                                 // already there..
                                 nav.plan_queue.pop();
