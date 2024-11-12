@@ -46,9 +46,6 @@ impl Hypernet {
     pub fn star(&self, id : u32) -> StarHandle {
         self.graph.node_weight(id.into()).unwrap().star.unwrap()
     }
-    pub fn node(&self, id : u32) -> &Hypernode {
-        self.graph.node_weight(id.into()).unwrap()
-    }
 
     pub fn build_from_points(&mut self, points : &Vec<Point>, length_remove_threshold : f32, removal_rate : f32) {
         self.import(points);

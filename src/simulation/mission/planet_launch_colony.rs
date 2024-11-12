@@ -84,7 +84,7 @@ fn update_mission_system(
             if mission.current_crew >= mission.target_crew_size && mission.current_capital >= mission.target_capital {
 
                 commands.spawn((
-                    crate::galaxy::fleet::FleetBundle::new(origin_colony.owner, origin_planet.star_id),
+                    crate::galaxy::fleet::FleetBundle::new(origin_colony.owner, origin_planet.system_local_pos(),origin_planet.star_id),
                     crate::galaxy::fleet::FleetColonyCrew{ destination : mission.target, colonists : mission.current_crew as i64}
                 ));
                 mission.current_crew = 0;

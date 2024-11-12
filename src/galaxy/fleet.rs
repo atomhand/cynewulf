@@ -27,7 +27,7 @@ pub struct FleetBundle {
 }
 
 impl FleetBundle {
-    pub fn new(owner : Entity, system : u32) -> Self {
+    pub fn new(owner : Entity, local_offset : Vec3, system : u32) -> Self {
         Self {
             fleet : Fleet {
                 time_since_last_jump : 0,
@@ -35,7 +35,7 @@ impl FleetBundle {
             },
             nav_position : NavPosition {
                 root_system : system,
-                offset : NavOffset::Star(Vec3::new(1.0,0.0,0.0) * GalaxyConfig::AU_SCALE)
+                offset : NavOffset::Star(local_offset)
             },
             navigator : Navigator {
                 plan_queue : Vec::new(),
@@ -51,7 +51,7 @@ impl FleetBundle {
 use crate::camera::{CameraSettings,CameraMode,CameraMain};
 
 pub fn fleet_preview_gizmos(
-    nav_query : Query<(&NavPosition, &Fleet)>,
+    nav_query : Query<(&NavPosition,&Navigator, &Fleet)>,
     empire_query : Query<&Empire>,
     hypernet : Res<Hypernet>,
     camera_settings : Res<CameraSettings>,
@@ -60,12 +60,22 @@ pub fn fleet_preview_gizmos(
 ) {
     let cam = camera.get_single().unwrap();
     let transition = cam.adjusted_mode_transition();
-    for (nav,fleet) in nav_query.iter() {
+    for (nav_pos,navigator,fleet) in nav_query.iter() {
         let empire = empire_query.get(fleet.owner).unwrap();
-        let galaxy = nav.galaxy_view_translation(&hypernet);
-        let system = nav.system_view_translation(&hypernet);
+        let galaxy = nav_pos.galaxy_view_translation(&hypernet);
+        let system = nav_pos.system_view_translation(&hypernet);
 
         let scale = f32::lerp(1.0,GalaxyConfig::SOLAR_RADIUS, transition);
-        gizmos.sphere(galaxy.lerp(system,transition), Quat::IDENTITY, scale, empire.color);
+        //gizmos.sphere(galaxy.lerp(system,transition), Quat::IDENTITY, scale, empire.color);
+        gizmos.circle(galaxy.lerp(system,transition), Dir3::Y, scale * 0.75, empire.color);
+
+        let indicator_col = match navigator.action {
+            Action::Idle => Color::linear_rgb(0.25,0.25,0.25),
+            Action::Move(_) => Color::linear_rgb(0.0,1.0,0.0),
+            Action::Colonise(_) => Color::linear_rgb(0.0,0.0,1.0),
+            _ => Color::NONE
+        };
+
+        gizmos.circle(galaxy.lerp(system,transition), Dir3::Y, scale * 1.5, indicator_col);
     }
 }
