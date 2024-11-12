@@ -3,8 +3,8 @@ use bevy::prelude::*;
 use bevy_mod_picking::backend::prelude::*;
 use bevy::render::view::RenderLayers;
 
-use crate::camera::{CameraSettings, CameraMode};
-
+use crate::camera::{CameraMain,CameraSettings, CameraMode};
+use crate::prelude::*;
 use super::{Star,selection::*};
 
 pub struct PickingBackendPlugin;
@@ -13,6 +13,7 @@ impl Plugin for PickingBackendPlugin {
         app.add_systems(PreUpdate, update_hits.in_set(PickSet::Backend));
     }
 }
+use crate::simulation::fleet_behaviour::navigation::NavPosition;
 
 fn update_hits(
     ray_map : Res<RayMap>,
@@ -20,11 +21,15 @@ fn update_hits(
     camera_settings : Res<CameraSettings>,
     galaxy_selectable_query : Query<(Entity,&GalaxySelectable,&GlobalTransform)>,
     system_selectable_query : Query<(&SystemSelectable,&GlobalTransform)>,
+    fleet_query : Query<(Entity,&SystemSelectable,&NavPosition)>,
+    camera : Query<&CameraMain>,
     stars : Query<&Children,With<Star>>,
+    hypernet : Res<Hypernet>,
     mut output_events: EventWriter<PointerHits>,
 
 ) {
-
+    let cam = camera.get_single().unwrap();
+    let cam_transition = cam.adjusted_mode_transition();
     for(&ray_id,&ray) in ray_map.map().iter() {
         let Ok((camera,_cam_layers)) = picking_cameras.get(ray_id.camera) else {
             continue;
@@ -50,6 +55,17 @@ fn update_hits(
                                         n_dist = d;
                                         nearest = Some(*entity);
                                     }
+                                }
+                            }
+                            // Fleets
+                            for (entity, selectable,nav_pos) in &fleet_query {
+                                let galaxy_pos = nav_pos.galaxy_view_translation(&hypernet);
+                                let system_pos = nav_pos.system_view_translation(&hypernet);
+                                let p = galaxy_pos.lerp(system_pos,cam_transition);
+                                let d= p.distance_squared(mouse_point);
+                                if d < n_dist && d < selectable.radius * selectable.radius {
+                                    n_dist = d;
+                                    nearest = Some(entity);
                                 }
                             }
                         }

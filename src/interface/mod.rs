@@ -5,6 +5,7 @@ mod time_control;
 mod star_label;
 mod hovered_item_widget;
 mod selection_panel;
+mod selected_fleet;
 mod empire_panel;
 
 mod hud;
@@ -36,6 +37,7 @@ impl Plugin for InterfacePlugin {
         app.add_plugins((
             time_widget::TimeWidgetPlugin,
             selection_panel::SelectionPanelPlugin,
+            selected_fleet::FleetSelectionPanelPlugin,
             empire_panel::EmpirePanelPlugin
         ))
             .add_systems(Update, (

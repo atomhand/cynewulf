@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::simulation::fleet_behaviour::navigation::*;
 use crate::prelude::*;
+use super::selection::{Selection,SystemSelectable};
 
 #[derive(Component)]
 pub struct Fleet {
@@ -23,7 +24,8 @@ pub struct SystemFleetInfo {
 pub struct FleetBundle {
     fleet : Fleet,
     nav_position : NavPosition,
-    navigator : Navigator
+    navigator : Navigator,
+    selectable : SystemSelectable
 }
 
 impl FleetBundle {
@@ -43,6 +45,9 @@ impl FleetBundle {
                 stranded_go_home : false,
                 speed : GalaxyConfig::AU_SCALE * 0.5,
                 hyperspeed : 10000
+            },
+            selectable : SystemSelectable {
+                radius : GalaxyConfig::SOLAR_RADIUS * 5.0
             }
         }
     }
@@ -51,16 +56,17 @@ impl FleetBundle {
 use crate::camera::{CameraSettings,CameraMode,CameraMain};
 
 pub fn fleet_preview_gizmos(
-    nav_query : Query<(&NavPosition,&Navigator, &Fleet)>,
+    nav_query : Query<(Entity,&NavPosition,&Navigator, &Fleet)>,
     empire_query : Query<&Empire>,
     hypernet : Res<Hypernet>,
     camera_settings : Res<CameraSettings>,
+    selection : Res<Selection>,
     camera : Query<&CameraMain>,
     mut gizmos : Gizmos
 ) {
     let cam = camera.get_single().unwrap();
     let transition = cam.adjusted_mode_transition();
-    for (nav_pos,navigator,fleet) in nav_query.iter() {
+    for (entity, nav_pos,navigator,fleet) in nav_query.iter() {
         let empire = empire_query.get(fleet.owner).unwrap();
         let galaxy = nav_pos.galaxy_view_translation(&hypernet);
         let system = nav_pos.system_view_translation(&hypernet);
@@ -76,6 +82,8 @@ pub fn fleet_preview_gizmos(
             _ => Color::NONE
         };
 
-        gizmos.circle(galaxy.lerp(system,transition), Dir3::Y, scale * 1.5, indicator_col);
+        let col = selection.get_selection_state(entity).as_colour_with_default(indicator_col);
+
+        gizmos.circle(galaxy.lerp(system,transition), Dir3::Y, scale * 1.5, col);
     }
 }
