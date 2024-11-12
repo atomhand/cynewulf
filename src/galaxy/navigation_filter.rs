@@ -18,6 +18,8 @@ pub fn update_empire_navigation_masks(
                     if entity == empire_entity {
                         mask.passable_systems_mask[star.node_id as usize] = true;
                         mask.owned_systems.push(star.node_id);
+                    } else {
+                        mask.passable_systems_mask[star.node_id as usize] = false;
                     }
                 }
             }
