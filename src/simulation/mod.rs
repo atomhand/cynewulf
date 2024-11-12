@@ -24,6 +24,7 @@ pub enum SimulationMode {
 pub struct SimulationSettings {
     pub paused : bool,
     pub mode : SimulationMode,
+    current_tick : i64,
     time_since_tick : f32
 }
 
@@ -84,6 +85,8 @@ fn simulation_tick_system(world : &mut World) {
 
         if sim_settings.time_since_tick > tick_interval {
             sim_settings.time_since_tick = (sim_settings.time_since_tick - tick_interval).min(0.0);
+            info!("tick! {}", sim_settings.current_tick);
+            sim_settings.current_tick += 1;
             world.run_schedule(SimPreTick);
             world.run_schedule(SimTick);
         }
@@ -114,7 +117,7 @@ impl Plugin for SimulationPlugin {
         );
 
         app.insert_resource(SimTime::new())
-            .insert_resource(SimulationSettings{ mode : SimulationMode::Normal, paused : true, time_since_tick : 0.0})
+            .insert_resource(SimulationSettings{ mode : SimulationMode::Normal, paused : true, time_since_tick : 0.0, current_tick : 0})
             .add_schedule(simulation_schedule)
             .add_schedule(pre_tick_schedule)
             .add_systems(Update,(simulation_tick_system,crate::galaxy::fleet::fleet_preview_gizmos))

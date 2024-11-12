@@ -13,12 +13,12 @@ use super::navigation::{
 };
 
 pub fn nav_update_task_system(
-    mut nav_query : Query<(&mut Navigator, &mut FleetColonyCrew)>,
+    mut nav_query : Query<(&mut Navigator, &FleetColonyCrew)>,
     planet_query : Query<&Planet>,
 ) {
     for (mut nav,crew) in nav_query.iter_mut() {
-        let Action::Idle = nav.action else { return; };
-        if nav.plan_queue.len() > 0 { return; }
+        let Action::Idle = nav.action else { continue; };
+        if nav.plan_queue.len() > 0 { continue; }
 
         if let Some(planet_id) = crew.destination {
             let planet = planet_query.get(planet_id).unwrap();
@@ -31,7 +31,7 @@ pub fn nav_update_task_system(
 use crate::galaxy::navigation_filter::{NavigationFilter,NavigationMask};
 
 pub fn nav_find_colony_target_system(
-    mut nav_query : Query<(&mut NavPosition, &Fleet, &mut FleetColonyCrew)>,
+    mut nav_query : Query<(&NavPosition, &Fleet, &mut FleetColonyCrew)>,
     system_query : Query<(&Star,&StarClaim)>,
     planet_query : Query<(&Planet,Entity,Option<&Colony>)>,
     nav_masks : Query<&NavigationMask>,
@@ -84,43 +84,23 @@ pub fn nav_find_colony_target_system(
 
             if starclaim.owner != None && starclaim.owner != Some(empire) { continue; }
 
-            let Some((_planet,planet_entity, colony)) = star.orbiters.iter().filter_map(|x| planet_query.get(*x).ok()).choose(&mut rng) else { continue; };
-
-            let weight = if let Some(colony) = colony {
-                i32::MAX //d //* 10 * i64::min(10000,colony.population.val() / 10000) as i32
-            } else {
-                d
-            };
-
-            if weight < best_dist {
-                best_dist = weight;
-                best_option = Some(planet_entity);
-            }
-        }
-
-        /* 
-        for(star,starclaim) in system_query.iter() {
-            if let Some(_star_owner) = starclaim.owner {
-                continue;
-                //if star_owner != fleet.owner { continue; }
-            }
+            for (_planet,planet_entity,colony) in star.orbiters.iter().filter_map(|planet_entity| planet_query.get(*planet_entity).ok()) {
+                let weight = if let Some(colony) = colony {
+                    i32::MAX //d //* 10 * i64::min(10000,colony.population.val() / 10000) as i32
+                } else {
+                    d + rng.gen_range(0..d+1)
+                };
     
-            let Some((_planet,planet_entity)) = star.orbiters.iter().filter_map(|x| planet_query.get(*x).ok()).choose(&mut rng) else { continue; };
-    
-            if let Some(path) = hypernet.find_path(nav_pos.root_system, star.node_id) {
-                let d = path.edges.len();
-    
-                if d < best_dist {
-                    best_dist = d;
+                if weight < best_dist {
+                    best_dist = weight;
                     best_option = Some(planet_entity);
                 }
-            }
+            }            
         }
-        */
 
         if let Some(planet_entity) = best_option {
             colony_fleet.destination = Some(planet_entity);
-        }
+        };
     });
 }
 

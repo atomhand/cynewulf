@@ -382,7 +382,7 @@ pub fn navigation_update_nav_system(
                                 nav.plan_queue.push(Plan::Jump(next_system));
                                 nav.plan_queue.push(Plan::ReachPoint(hyperlane_transit_point(root_system_star, next_system_star.pos)));
                             } else {
-                                // already there..
+                                // already there..                                
                                 nav.plan_queue.pop();
                             }
 
