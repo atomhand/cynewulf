@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::galaxy::{Selection,GalaxyConfig};
+use crate::galaxy::Selection;
 use bevy_mod_picking::prelude::*;
 use crate::prelude::*;
 use super::UiConsts;

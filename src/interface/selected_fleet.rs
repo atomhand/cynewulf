@@ -155,7 +155,7 @@ fn update_widget_system(
             }
             return;
         };
-        let Ok((fleet,colony_crew,nav_pos,navigator)) = fleet_query.get(selected) else {
+        let Ok((fleet,colony_crew,_nav_pos,navigator)) = fleet_query.get(selected) else {
             for (mut style,_,_) in root_query.iter_mut() {
                 style.display = Display::None;
             }

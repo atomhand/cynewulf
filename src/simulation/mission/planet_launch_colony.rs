@@ -45,18 +45,6 @@ impl Default for LaunchColonyMission {
     }
 }
 
-fn is_valid_target(origin : &Colony, t_planet : &Planet, t_colony : Option<&Colony>) -> Option<bool> {
-    if let Some(t_colony) = t_colony {
-        if origin.owner != t_colony.owner {
-            return None;
-        }
-    }
-
-    // Pathfinding checks..
-
-    Some(true)
-}
-
 fn update_mission_system(
     mut query : Query<(&Planet, &mut LaunchColonyMission,&Colony)>,
     planet_query : Query<(&Planet,Option<&Colony>)>,

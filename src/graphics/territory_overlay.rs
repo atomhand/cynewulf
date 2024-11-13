@@ -108,8 +108,7 @@ fn update_overlays(
     mut mats : ResMut<Assets<TerritoryOverlaysMaterial>>,
     overlays_data : Res<OverlaysData>,
     selection : Res<crate::galaxy::Selection>,
-    hypernet : Res<Hypernet>,
-    time : Res<Time>
+    hypernet : Res<Hypernet>
 ) {
     let Some(mat) = mats.get_mut(&overlays_data.material_handle) else { return; };
 

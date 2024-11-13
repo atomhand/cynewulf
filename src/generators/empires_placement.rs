@@ -34,7 +34,7 @@ pub fn place_star_empires(mut commands : Commands,
 
     let mut rng = thread_rng();
 
-    for i in 0..num_empires {
+    for _i in 0..num_empires {
         let mut best : Option<(Entity,Entity,i32)> = None;
 
         let dijkstra = hypernet.dijkstra(&claimed_ids);
@@ -47,7 +47,7 @@ pub fn place_star_empires(mut commands : Commands,
             let star_score = dist.unwrap_or(1);
 
             for planet_entity in &star.orbiters {
-                if let Ok(planet) = planet_query.get(*planet_entity) {
+                if let Ok(_planet) = planet_query.get(*planet_entity) {
 
                     // TODO - Rate planets on a factor that matters..
                     let score = star_score;

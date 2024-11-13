@@ -17,7 +17,8 @@ pub use crate::galaxy::{
     colony::{Economy,Colony},
     GalaxyConfig,
     Hypernet,
-    Pathfinding
+    Pathfinding,
+    Selection
 };
 
 pub use crate::simulation::{

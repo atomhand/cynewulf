@@ -161,7 +161,7 @@ fn resolve_proxies(
             },
             InterfaceIdentifier::EmpireStar(i) => {
                 if let Some(empire_entity) = player_empire.empire {                    
-                    let (empire,index) = empire_query.get(empire_entity).unwrap();
+                    let (_empire,index) = empire_query.get(empire_entity).unwrap();
                     if (i as usize) < index.systems.len() {
                         Some(index.systems[i as usize])
                     } else {
@@ -173,7 +173,7 @@ fn resolve_proxies(
             },
             InterfaceIdentifier::EmpirePlanet(i) => {
                 if let Some(empire_entity) = player_empire.empire {                    
-                    let (empire,index) = empire_query.get(empire_entity).unwrap();
+                    let (_empire,index) = empire_query.get(empire_entity).unwrap();
                     if (i as usize) < index.colonies.len() {
                         Some(index.colonies[i as usize])
                     } else {
