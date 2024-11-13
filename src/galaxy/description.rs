@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use crate::prelude::*;
 
 pub enum DescribableType {
     Planet,
@@ -8,12 +9,25 @@ pub enum DescribableType {
 use super::{Empire,Colony};
 
 pub fn update_descriptions_system (
-    mut query : Query<(&mut Description,&Colony), Changed<Colony>>,
-    empire_query : Query<&Empire,Without<Colony>>
+    mut colony_query : Query<(&mut Description,&Colony), Changed<Colony>>,
+    mut star_query : Query<(&mut Description,&StarClaim), (Changed<StarClaim>, Without<Colony>)>,
+    empire_query : Query<&Empire>
 ) {
-    for (mut description,colony) in query.iter_mut() {
+    for (mut description,colony) in colony_query.iter_mut() {
         if let Ok(owner) = empire_query.get(colony.owner) {
             description.empire_color = Some(owner.color);
+        } else {
+            description.empire_color = None;
+        }
+        // todo.. account for colony abandonment
+    }
+    for (mut description,starclaim) in star_query.iter_mut() {
+        if let Some(owner) = starclaim.owner {
+            if let Ok(owner) = empire_query.get(owner) {
+                description.empire_color = Some(owner.color);
+            }
+        } else {
+            description.empire_color = None;
         }
 
         // todo.. account for colony abandonment

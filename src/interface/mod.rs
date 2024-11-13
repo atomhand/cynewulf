@@ -8,7 +8,6 @@ mod selection_panel;
 mod selected_fleet;
 mod empire_panel;
 mod empire_outliner;
-
 mod hud;
 
 struct UiConsts;
@@ -35,17 +34,18 @@ fn selection_proxy_highlight(
 
 impl Plugin for InterfacePlugin {
     fn build(&self, app : &mut App) {
-        app.add_plugins((
+        app
+        .add_plugins((
             time_widget::TimeWidgetPlugin,
             selection_panel::SelectionPanelPlugin,
             selected_fleet::FleetSelectionPanelPlugin,
             empire_panel::EmpirePanelPlugin,
             empire_outliner::EmpireOutlinerPlugin
         ))
-            .add_systems(Update, (
-                selection_proxy_highlight,
-                time_control::time_control_system,
-                star_label::draw_star_labels,
-                star_label::add_star_labels).after(crate::camera::camera_control_system));
+        .add_systems(Update, (
+            selection_proxy_highlight,
+            time_control::time_control_system,
+            star_label::draw_star_labels,
+            star_label::add_star_labels).after(crate::camera::camera_control_system));
     }
 }
