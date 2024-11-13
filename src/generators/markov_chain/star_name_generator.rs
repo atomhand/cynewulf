@@ -7,32 +7,47 @@ pub struct StarNameGenerator {
 
 impl StarNameGenerator {
     pub const SOURCE_NAMES: &'static [&'static str] = &[
+        "Alces",
+        "Alcibades",
         "Acamar",
         "Alpha",
         "Arian",
         "Aghran",
         "Al-aqrab",
+        "Al-Lat",
+        "Allatu",
+        "Alilat",
         "Ahir",
         "Andromeda",
         "An-nhar",
-        "Aquarius",
+        //"Aquarius", // PRONE TO REPLICATE NEAR-WHOLESALE, MAYBE REMOVE
         "Auriga",
         "Auron",
-        "Austrinus",
+        "Auton",
+        //"Austrinus",
+        "Akaiwa",
+        "Artemesia",
 
         "Barrion",
         "Belhammond",
         "Berria",
         "Beta",
         "Brand",
+        "Baal",
+        "Ba'al",
+        "Boron",
+        "Bizen",
 
-        "Cassiopeia",
+        // DISABLED CUZ GENERATOR MOSTLY JUST REPLICATES IT WHOLESALE
+        //"Cassiopeia",
         "Cetus",
         "Caladan",
         "Canes",
         //"Canes Venatici",
         "Carina",
-        "Centaurus",
+        
+        // DISABLED CUZ GENERATOR MOSTLY JUST REPLICATES IT WHOLESALE
+        // "Centaurus",
         "Cepheus",
         "Cernan",
         "Certus",
@@ -44,6 +59,7 @@ impl StarNameGenerator {
         "Crucis",
         "Cygnus",
         "Cygnon",
+        "Chugoku",
 
         "Daedlus",
         "Delrune",
@@ -57,6 +73,7 @@ impl StarNameGenerator {
         "Dromar",
         "Dryad",
         "Dyad",
+        "Dsiban",
 
         "Ea",
         "Eidre",
@@ -69,6 +86,8 @@ impl StarNameGenerator {
         "Ersand",
         "Ezar",
         "Ezor",
+        "Eridani",
+        "Ebih",
 
         "Fallia",
         "Fand",
@@ -88,7 +107,6 @@ impl StarNameGenerator {
         "Gail",
         "Geisand",
         "Gemini",
-        "Gydaron",
         "Giausar",
         "Ginan",
         "Gloas",
@@ -97,8 +115,11 @@ impl StarNameGenerator {
         "Guahayona",
         "Gudja",
         "Gumala",
+        "Gydaron",
         "Gyron",
 
+        "Hattusa",
+        "Hassuna",
         "Hadar",
         "Haedis",
         "Hatysa",
@@ -116,6 +137,10 @@ impl StarNameGenerator {
         "Iskand",
         "Itonda",
         "Izar",
+        "Iota Leporis",
+        "Ishtar",
+        "Inanna",
+        "Ilabrat",
 
         "Jabbah",
         "Jalar",
@@ -137,6 +162,8 @@ impl StarNameGenerator {
         "Kornephoros",
         "Kuma",
         "Kurhah",
+        "Kur",
+        "Kurashiki",
 
         "Landrig",
         "Lantion",
@@ -151,6 +178,7 @@ impl StarNameGenerator {
         "Lushar",
         "Lutris",
         "Lycilin",
+        "Lyncis",
 
         "Maasaym",
         "Macondo",
@@ -185,15 +213,21 @@ impl StarNameGenerator {
         "Nusakan",
         "Nushagak",
         "Nyamien",
+        "Niushe",
+        "Ninshubur",
+        "Nergal",
+        "Nippur",
 
         "Oan",
         "Ogma",
         "Okab",
         "Omoyo",
         "Ophiiochus",
+        "Ophiuchi",
         "Orion",
         "Orkaria",
         "Oryx",
+        "Okayama",
 
         "Parumleo",
         "Petra",
@@ -258,6 +292,7 @@ impl StarNameGenerator {
         "Suhail",
         "Sulafat",
         "Syrma",
+        "Shaowei",
 
         "Tabit",
         "Taika",
@@ -300,6 +335,7 @@ impl StarNameGenerator {
         "Uruk",
         "Uten",
         "Uuba",
+        "Ube",
 
         "Vega",
         "Veylan",
@@ -309,6 +345,7 @@ impl StarNameGenerator {
         "Voss",
         "Vox",
 
+        "Waiping",
         "Wasat",
         "Walhannis",
         "Weynhab",
@@ -318,6 +355,8 @@ impl StarNameGenerator {
         "Wulrant",
         "Wouri",
         "Wurren",
+        "Weyr",
+        "Wir",
 
         "Xamidimura",
         "Xerant",
@@ -327,6 +366,7 @@ impl StarNameGenerator {
         "Xoss",
         "Xuange",
 
+        "Yang",
         "Yanda",
         "Yantris",
         "Yed",
@@ -347,7 +387,8 @@ impl StarNameGenerator {
         "Zoss",
         "Zoloss",
         "Zosma",
-        "Zuben"
+        "Zuben",
+        "Zynath",
     ];
 
     pub fn new() -> Self {
