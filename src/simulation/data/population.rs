@@ -1,37 +1,68 @@
 use crate::prelude::*;
 use super::dynamic_stock::DynamicStock;
 
-pub struct Population(DynamicStock);
+pub struct Population {
+    pop : DynamicStock,
+    planet_capacity : i64,
+    birth_rate : IFraction,
+    death_rate : IFraction,
+    births : i64,
+    deaths : i64,
+}
 
 impl std::string::ToString for Population {
     fn to_string(&self) -> String {
-        self.0.to_string()
+        self.pop.to_string()
     }
 }
 
 impl Population {
     pub fn new(raw : i64) -> Self {
-        Self(DynamicStock::new(raw))
+        Self {
+            pop : DynamicStock::new(raw),
+            planet_capacity : 0,
+            birth_rate : IFraction::new(0,1),
+            death_rate : IFraction::new(0,1),
+            births : 0,
+            deaths : 0
+        }
     }
     pub fn add(&mut self, val : i64) {
-        self.0.stock += val;
+        self.pop.stock += val;
     }
     pub fn set(&mut self, val : i64) {
-        self.0.stock = val;
+        self.pop.stock = val;
     }
     pub fn val(&self) -> i64 {
-        self.0.stock
+        self.pop.stock
     }
     pub fn decade_birth_rate(&self) -> i64 {
-        self.0.stock * 10 / 50
+        (self.pop.stock * 10) / 50
+    }
+
+    pub fn details(&self) -> String {
+        format!("Capacity: {}\nBirth Rate {} | Death Rate: {}\n Births : {} | Deaths : {} | Net : {}",
+            self.planet_capacity.format_big_number(),
+            self.birth_rate.display_as_percent(),
+            self.death_rate.display_as_percent(),
+            self.births.format_big_number(),
+            self.deaths.format_big_number(),
+            (self.births-self.deaths).format_big_number())
     }
 
     pub fn increment_daily(&mut self, planet : &Planet) {
-        let birth = self.decade_birth_rate();
-        let inverse_death_rate = 100 * planet.get_population_support() as i64 / self.0.stock;
-        let death = self.0.stock * 10 / inverse_death_rate;
+        self.planet_capacity = planet.get_population_support() as i64;
+        self.birth_rate = IFraction::new(10,50);
 
-        self.0.set_change_per_decade(birth-death);
-        self.0.increment_daily();
+        let birth = self.decade_birth_rate();
+        let death_rate : IFraction = IFraction::new(self.pop.stock * 10, self.planet_capacity * 50);
+        self.death_rate = death_rate;
+        let death = self.pop.stock * death_rate;
+
+        self.births = birth;
+        self.deaths = death;
+
+        self.pop.set_change_per_decade(birth-death);
+        self.pop.increment_daily();
     }
 }

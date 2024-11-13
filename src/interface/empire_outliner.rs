@@ -208,7 +208,7 @@ fn update_widget_system(
         for (mut text, mut style, panel) in details_query.iter_mut() {
             if panel.slot < len {
                 style.display = Display::None;
-                if Some(empire_stars[panel.slot as usize]) == selection.selected {
+                if Some(empire_stars[panel.slot as usize]) == selection.selected_system {
                     text.sections[1].value = format!("Panel Details for Star {}", desc[panel.slot as usize].name);
                     text.sections[0].style.color = Color::srgb(0.25,0.25,1.0);
                     text.sections[1].style.color = Color::srgb(0.25,0.25,1.0);

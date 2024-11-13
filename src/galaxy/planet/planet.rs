@@ -12,7 +12,7 @@ pub struct Planet {
     // in Earth days
     pub orbital_period : u32,
     pub orbital_date : u32,
-    radius : f32,
+    pub radius : f32,
 
     // TO ADD
     // orbital_period
@@ -28,11 +28,12 @@ impl Planet {
 
     // Returns in millions of square km
     pub fn get_surface_area(&self) -> f32 {
+        // rad of Jupiter = 70 million km
         4. * std::f32::consts::PI * (self.radius * 70.) * (self.radius * 70.)
     }
 
     pub fn get_population_support(&self) -> u64 {
-        self.get_surface_area() as u64 * 40000000_u64
+        self.get_surface_area() as u64 * (12 * 1000000000_u64 / 500)
     }
 
     // return pos rescaled to the general coordinate system

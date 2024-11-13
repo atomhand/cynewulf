@@ -1,19 +1,19 @@
 pub trait FormatNumber {
-    fn format_number(&self) -> String;
+    fn format_big_number(&self) -> String;
 }
 
 impl FormatNumber for i64 {
-    fn format_number(&self) -> String {
+    fn format_big_number(&self) -> String {
         if *self < 0 {
-            format!("-{}", (self.abs() as u64).format_number())
+            format!("-{}", (self.abs() as u64).format_big_number())
         } else {
-            (self.abs() as u64).format_number()
+            (self.abs() as u64).format_big_number()
         }
     }
 }
 
 impl FormatNumber for u64 {
-    fn format_number(&self) -> String {
+    fn format_big_number(&self) -> String {
         if *self < 1000 {
             return self.to_string();
         }

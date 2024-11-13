@@ -18,7 +18,7 @@ impl Default for DynamicStock {
 
 impl std::string::ToString for DynamicStock {
     fn to_string(&self) -> String {
-        self.stock.format_number()
+        self.stock.format_big_number()
     }
 }
 
