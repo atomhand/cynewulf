@@ -28,14 +28,14 @@ pub use star::{Star,OverlaysTriangulationVertex};
 mod hypernet;
 pub use hypernet::Hypernet;
 
-pub mod colony;
-pub use colony::{StarClaim,Colony};
+mod planet;
+pub use planet::planet::Planet;
+pub use planet::colony::{StarClaim,Colony};
+pub use planet::economy::Economy;
 
 pub mod empire;
 pub use empire::Empire;
 
-mod planet;
-pub use planet::Planet;
 pub struct GalaxySetupPlugin;
 
 impl Plugin for GalaxySetupPlugin {

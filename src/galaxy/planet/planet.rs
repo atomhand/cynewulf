@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use rand::prelude::*;
-use super::Star;
-use super::GalaxyConfig;
+use crate::prelude::*;
 
 #[derive(Component)]
 pub struct Planet {
