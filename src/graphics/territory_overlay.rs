@@ -94,8 +94,8 @@ pub struct OverlaysPlugin;
 impl Plugin for OverlaysPlugin {
     fn build(&self, app : &mut App) {
         app.add_plugins(MaterialPlugin::<TerritoryOverlaysMaterial>::default())
-            .add_systems(Startup, generate_overlays_mesh.after(crate::generators::galaxy_generation::setup_stars))
-            .add_systems(PostStartup,update_selection_radius)
+            .add_systems(BuildGalaxyGraphics, generate_overlays_mesh)
+            .add_systems(BuildGalaxyGraphics,update_selection_radius)
             .add_systems(Update,update_overlays);
     }
 }

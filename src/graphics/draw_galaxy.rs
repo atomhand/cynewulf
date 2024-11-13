@@ -5,6 +5,17 @@ use crate::camera::{CameraSettings,CameraMode};
 use crate::galaxy::Selection;
 use super::galaxy_materials::PlanetBillboardMaterial;
 
+
+pub struct DrawGalaxyPlugin;
+
+impl Plugin for DrawGalaxyPlugin {
+    fn build(&self, app : &mut App) {
+        app.add_plugins(super::instanced_star_pipeline::StarMaterialPlugin)
+            .add_systems(BuildGalaxyGraphics,(finish_assemble_star_system,star_gfx))
+            .add_systems(Update, update_planet_materials);
+    }
+}
+
 fn finish_assemble_star_system(
     planets : Query<(&Planet,Entity),Added<Planet>>,
     mut commands : Commands,
@@ -75,16 +86,6 @@ fn star_gfx(
         ),
         bevy::render::view::NoFrustumCulling
     ));
-}
-
-pub struct DrawGalaxyPlugin;
-
-impl Plugin for DrawGalaxyPlugin {
-    fn build(&self, app : &mut App) {
-        app.add_plugins(super::instanced_star_pipeline::StarMaterialPlugin)
-            .add_systems(Startup,star_gfx.after(crate::generators::galaxy_generation::setup_stars))
-            .add_systems(Update, (finish_assemble_star_system,update_planet_materials));
-    }
 }
 
 pub fn draw_system_overlays(

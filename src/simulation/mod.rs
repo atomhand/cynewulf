@@ -1,8 +1,8 @@
 use bevy::prelude::*;
-use bevy::ecs::schedule::ScheduleLabel;
 mod time;
 mod orbits;
-mod demography_system;
+mod economy;
+mod schedule;
 
 mod mission;
 
@@ -11,6 +11,8 @@ pub mod fleet_behaviour;
 pub mod data;
 
 pub use time::SimTime;
+
+pub use schedule::{SimTick,SimPreTick,SimPostTick,SimStart,BuildGalaxyGraphics};
 
 #[derive(Clone,Copy)]
 pub enum SimulationMode {
@@ -69,12 +71,11 @@ impl SimulationSettings {
 
 pub struct SimulationPlugin;
 
-#[derive(ScheduleLabel,Debug,Hash,PartialEq,Eq,Clone)]
-pub struct SimPreTick;
-#[derive(ScheduleLabel,Debug,Hash,PartialEq,Eq,Clone)]
-pub struct SimTick;
-#[derive(ScheduleLabel,Debug,Hash,PartialEq,Eq,Clone)]
-pub struct SimPostTick;
+fn simulation_start_system(world : &mut World) {
+    world.run_schedule(SimStart);
+    world.run_schedule(SimPostTick);
+    world.run_schedule(BuildGalaxyGraphics);
+}
 
 fn simulation_tick_system(world : &mut World) {
     let delta_seconds = world.resource::<Time>().delta_seconds();
@@ -89,39 +90,21 @@ fn simulation_tick_system(world : &mut World) {
             sim_settings.current_tick += 1;
             world.run_schedule(SimPreTick);
             world.run_schedule(SimTick);
+            world.run_schedule(SimPostTick);
         }
     }
 }
 
-use fleet_behaviour::navigation;
 use fleet_behaviour::colonisation;
 
 impl Plugin for SimulationPlugin {
     fn build(&self, app : &mut App) {
 
-        let mut simulation_schedule = Schedule::new(SimTick);
-        // This needs to be split into multiple schedules at some point
-        simulation_schedule.add_systems((
-            time::tick_date_system,
-            orbits::update_orbiters,
-            demography_system::update_population,
-            (navigation::navigation_update_nav_system,
-            colonisation::nav_find_colony_target_system,
-            colonisation::nav_update_task_system,
-            colonisation::process_colonise_events).chain(),
-            crate::galaxy::indexes::empires_index::update_empire_index_system // this could be organised in a more hierarchical way
-        ));
-
-        let mut pre_tick_schedule = Schedule::new(SimPreTick);
-        pre_tick_schedule.add_systems(
-            crate::galaxy::navigation_filter::update_empire_navigation_masks
-        );
-
         app.insert_resource(SimTime::new())
             .insert_resource(SimulationSettings{ mode : SimulationMode::Normal, paused : true, time_since_tick : 0.0, current_tick : 0})
-            .add_schedule(simulation_schedule)
-            .add_schedule(pre_tick_schedule)
+            .add_systems(PostStartup,simulation_start_system)
             .add_systems(Update,(simulation_tick_system,crate::galaxy::fleet::fleet_preview_gizmos))
+            .add_plugins(schedule::SchedulePlugin)
             .add_plugins(mission::planet_launch_colony::PlanetAutoColonyMissionPlugin)
             .add_event::<colonisation::ColonisePlanetEvent>();
     }

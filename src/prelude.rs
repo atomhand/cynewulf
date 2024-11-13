@@ -3,21 +3,25 @@ pub use crate::simulation::data::population::Population;
 
 pub use crate::galaxy::{
     Empire,
-    indexes::EmpireIndex,
-    StarClaim,
+    indexes::{
+        EmpireIndex,
+        galaxy_index::{GalaxyIndex,PlanetHandle,StarHandle}
+    },
     Fleet,
-    colony::{Economy,Colony},
     navigation_filter::{NavigationMask,NavigationFilter},
-    galaxy_index::{GalaxyIndex,PlanetHandle,StarHandle},
-    empire::PlayerEmpire
-};
+    empire::PlayerEmpire,
 
-pub use crate::galaxy::{
     Star,
+    StarClaim,
     Planet,
+    colony::{Economy,Colony},
     GalaxyConfig,
     Hypernet,
     Pathfinding
+};
+
+pub use crate::simulation::{
+    SimStart,SimPreTick,SimTick,SimPostTick,BuildGalaxyGraphics
 };
 
 pub use crate::util::number::*;
