@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use rand::prelude::*;
 use super::navigation_filter::NavigationMask;
 use crate::prelude::*;
+use super::indexes::EmpireIndex;
 
 use crate::generators::markov_chain::{UsedPlanetNames,PlanetNameGenerator};
 
@@ -15,7 +16,8 @@ pub struct Empire {
 #[derive(Bundle)]
 pub struct EmpireBundle {
     empire : Empire,
-    nav_mask : NavigationMask
+    nav_mask : NavigationMask,
+    empire_index : EmpireIndex
 }
 
 impl Empire {
@@ -29,7 +31,8 @@ impl Empire {
                 name : namegen.next(used_planet_names),
                 namegen : namegen,
             },
-            nav_mask : NavigationMask::new(hypernet, true)
+            nav_mask : NavigationMask::new(hypernet, true),
+            empire_index : default()
         }
     }
 }

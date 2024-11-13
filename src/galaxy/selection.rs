@@ -33,6 +33,9 @@ pub enum InterfaceIdentifier {
     // CurrentSystem,
     // CurrentSelected,
     CurrentSystemOrbiter(u32),
+    CurrentSelectedFleet(u32),
+    EmpirePlanet(u32),
+    EmpireStar(u32)
 }
 
 pub enum SelectionState {
@@ -114,8 +117,10 @@ impl SelectionProxy {
 fn resolve_proxies(
     mut proxies : Query<&mut SelectionProxy>,
     star_query : Query<&Star,Without<SelectionProxy>>,
+    fleet_query : Query<&Fleet>,
     selection : Res<Selection>,
     player_empire : Res<crate::galaxy::empire::PlayerEmpire>,
+    empire_query : Query<(&Empire,&EmpireIndex)>
 ) {
     for mut proxy in proxies.iter_mut() {
         proxy.resolved_target = match proxy.target {
@@ -141,6 +146,42 @@ fn resolve_proxies(
                     } else {
                         None
                     })
+            },
+            InterfaceIdentifier::CurrentSelectedFleet(i) => {
+                if let Some(selected) = selection.selected {
+                    if i == 0
+                    && fleet_query.contains(selected) {
+                            selection.selected
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            },
+            InterfaceIdentifier::EmpireStar(i) => {
+                if let Some(empire_entity) = player_empire.empire {                    
+                    let (empire,index) = empire_query.get(empire_entity).unwrap();
+                    if (i as usize) < index.systems.len() {
+                        Some(index.systems[i as usize])
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            },
+            InterfaceIdentifier::EmpirePlanet(i) => {
+                if let Some(empire_entity) = player_empire.empire {                    
+                    let (empire,index) = empire_query.get(empire_entity).unwrap();
+                    if (i as usize) < index.colonies.len() {
+                        Some(index.colonies[i as usize])
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
             }
         };
     }

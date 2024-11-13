@@ -108,7 +108,8 @@ impl Plugin for SimulationPlugin {
             (navigation::navigation_update_nav_system,
             colonisation::nav_find_colony_target_system,
             colonisation::nav_update_task_system,
-            colonisation::process_colonise_events).chain()
+            colonisation::process_colonise_events).chain(),
+            crate::galaxy::indexes::empires_index::update_empire_index_system // this could be organised in a more hierarchical way
         ));
 
         let mut pre_tick_schedule = Schedule::new(SimPreTick);

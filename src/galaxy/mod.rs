@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+pub mod indexes;
+
 mod picking_backend;
 
 pub mod fleet;

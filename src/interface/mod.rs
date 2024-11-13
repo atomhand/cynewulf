@@ -7,6 +7,7 @@ mod hovered_item_widget;
 mod selection_panel;
 mod selected_fleet;
 mod empire_panel;
+mod empire_outliner;
 
 mod hud;
 
@@ -38,7 +39,8 @@ impl Plugin for InterfacePlugin {
             time_widget::TimeWidgetPlugin,
             selection_panel::SelectionPanelPlugin,
             selected_fleet::FleetSelectionPanelPlugin,
-            empire_panel::EmpirePanelPlugin
+            empire_panel::EmpirePanelPlugin,
+            empire_outliner::EmpireOutlinerPlugin
         ))
             .add_systems(Update, (
                 selection_proxy_highlight,
