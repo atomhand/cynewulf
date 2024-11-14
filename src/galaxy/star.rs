@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use super::GalaxyConfig;
+use rand::prelude::*;
 
 #[derive(Component)]
 pub struct OverlaysTriangulationVertex {
@@ -61,6 +62,20 @@ impl Star {
     // Distance is Au
     pub fn get_insolation(&self, distance_au : f32) -> f32 {
         self.get_luminosity() / (distance_au * distance_au)
+    }
+
+    pub fn random_star_mass(rng : &mut ThreadRng) -> f32 {
+        let in_ranges = [
+            (0.08..0.45,10.0), // M
+            (0.45..0.8,12.1),// K
+            (0.8..1.04,30.), // G
+            (1.04..1.4,30.), // F
+            (1.4..2.1,3.), // A
+            (2.1..16.,1.5), // B
+            (16. ..152.,1.0), // O
+        ];
+        let range = in_ranges.choose_weighted(rng, |item| item.1).unwrap().0.clone();
+        rng.gen_range(range)
     }
 
     fn simple_planck(temperature : f32) -> Vec3 {

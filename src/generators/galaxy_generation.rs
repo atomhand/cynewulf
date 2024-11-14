@@ -65,7 +65,7 @@ pub fn setup_stars(mut commands : Commands,
             let mut star = Star::new(
                 &mut starname_gen, 
                 node_id.index() as u32, star_pos, 
-                f32::sqrt(rng.gen_range(0.25..12.0))            
+                Star::random_star_mass(&mut rng)        
             );
 
             let rad = star.get_scaled_radius();
