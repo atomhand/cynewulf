@@ -9,6 +9,7 @@ pub fn update_empire_index_system(
     for (mut index,empire) in empire_query.iter_mut() {
         index.colonies.clear();
         index.systems.clear();
+        index.population = 0;
 
         // These need to be ordered? so lists are consistent
 
@@ -22,6 +23,7 @@ pub fn update_empire_index_system(
         for (entity,colony) in &colonies_query {
             if colony.owner == empire {
                 index.colonies.push(entity);
+                index.population += colony.population.val();
             }
         }
     }
@@ -30,5 +32,6 @@ pub fn update_empire_index_system(
 #[derive(Component,Default)]
 pub struct EmpireIndex {
     pub colonies : Vec<Entity>,
-    pub systems : Vec<Entity>
+    pub systems : Vec<Entity>,
+    pub population : i64
 }

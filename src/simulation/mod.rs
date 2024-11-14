@@ -86,7 +86,7 @@ fn simulation_tick_system(world : &mut World) {
 
         if sim_settings.time_since_tick > tick_interval {
             sim_settings.time_since_tick = (sim_settings.time_since_tick - tick_interval).min(0.0);
-            info!("tick! {}", sim_settings.current_tick);
+            //info!("tick! {}", sim_settings.current_tick);
             sim_settings.current_tick += 1;
             world.run_schedule(SimPreTick);
             world.run_schedule(SimTick);

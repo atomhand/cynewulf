@@ -5,6 +5,7 @@ pub use crate::galaxy::{
     Empire,
     indexes::{
         EmpireIndex,
+        SystemIndex,
         galaxy_index::{GalaxyIndex,PlanetHandle,StarHandle}
     },
     Fleet,

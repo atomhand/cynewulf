@@ -73,6 +73,7 @@ fn setup_widget(
         parent.spawn((
             super::UiSelectionHighlight,
             ButtonBundle {
+                border_color : Color::srgb(1.,1.,1.).into(),
                 background_color : Color::srgb(0.1,0.1,0.2).into(),
                 z_index: ZIndex::Global(i32::MAX),
                 style: Style {
@@ -81,8 +82,8 @@ fn setup_widget(
                     position_type: PositionType::Relative,
                     justify_content : JustifyContent::Center,
                     width: Val::Percent(100.),//(100.),
-                    border : UiRect::all(Val::Px(4.0)),
-                    padding: UiRect::all(Val::Px(2.0)),
+                    border : UiRect::all(Val::Px(2.0)),
+                    padding: UiRect::all(Val::Px(4.0)),
                     margin : UiRect::all(Val::Px(1.0)),
                     height : Val::Auto,    
                     ..Default::default()
@@ -180,7 +181,7 @@ fn update_widget_system(
     mut header_query: Query<(&mut Text,&SelectionPanelTabHeader), Without<SelectionPanelTabRoot>>,
     mut details_query: Query<(&mut Text, &mut Style, &SelectionPanelTabDetails), (Without<SelectionPanelTabRoot>,Without<SelectionPanelTabHeader>)>,
     selection : Res<Selection>,
-    description_query : Query<&Description, Without<SelectionPanelTabHeader>>,
+    star_query : Query<(&Description,&SystemIndex), Without<SelectionPanelTabHeader>>,
     player_empire : Res<PlayerEmpire>,
     empires_index : Query<&EmpireIndex>
 ) {
@@ -194,22 +195,22 @@ fn update_widget_system(
 
         let Ok(empire_index) = empires_index.get(empire) else { return; };
         let empire_stars = &empire_index.systems;
-        let desc = empire_stars.iter().map(|x| description_query.get(*x).unwrap()).collect::<Vec<_>>();
+        let desc = empire_stars.iter().map(|x| star_query.get(*x).unwrap()).collect::<Vec<_>>();
         let len = empire_stars.len() as i32;
 
         for (mut text, panel) in header_query.iter_mut() {
             if panel.slot < len {
-                text.sections[0].value = format!("{} ", desc[panel.slot as usize].name);
+                text.sections[0].value = format!("{} ", desc[panel.slot as usize].0.name);
                 text.sections[0].style.color = Color::WHITE;
-                text.sections[1].value = format!("({})", desc[panel.slot as usize].type_name());
-                text.sections[1].style.color = desc[panel.slot as usize].type_color();
+                text.sections[1].value = format!("({})", desc[panel.slot as usize].1.population.format_big_number());
+                text.sections[1].style.color = desc[panel.slot as usize].0.type_color();
             }
         }
         for (mut text, mut style, panel) in details_query.iter_mut() {
             if panel.slot < len {
                 style.display = Display::None;
                 if Some(empire_stars[panel.slot as usize]) == selection.selected_system {
-                    text.sections[1].value = format!("Panel Details for Star {}", desc[panel.slot as usize].name);
+                    text.sections[1].value = format!("Panel Details for Star {}", desc[panel.slot as usize].0.name);
                     text.sections[0].style.color = Color::srgb(0.25,0.25,1.0);
                     text.sections[1].style.color = Color::srgb(0.25,0.25,1.0);
                     style.display = Display::Flex;
@@ -218,7 +219,7 @@ fn update_widget_system(
         }
         for (mut style, mut bg, panel) in root_query.iter_mut() {
             if panel.slot < len {
-                *bg = desc[panel.slot as usize].empire_color.unwrap_or(
+                *bg = desc[panel.slot as usize].0.empire_color.unwrap_or(
                     Color::srgb(0.1,0.1,0.1)).into();                                          
                 style.display = Display::Flex;
             } else {
