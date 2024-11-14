@@ -117,9 +117,8 @@ impl Economy {
     }
 
     pub fn update_stocks(&mut self) {
-        let net_worker_promotion = self.engineer_growth as i64 - self.advanced_workers * self.retiring_rate;
+        let net_worker_promotion = i64::min(self.basic_workers,self.engineer_growth as i64 - self.advanced_workers * self.retiring_rate);
 
-        assert!(net_worker_promotion < self.basic_workers, "Can't promote more basic workers than actually exist");
         self.advanced_workers = self.advanced_workers + net_worker_promotion;
         self.basic_workers -= net_worker_promotion;
 

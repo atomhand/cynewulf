@@ -12,7 +12,8 @@ pub struct Planet {
     // in Earth days
     pub orbital_period : u32,
     pub orbital_date : u32,
-    pub radius : f32,
+    pub radius : f32, // in AU
+    pub insolation : f32,
 
     // TO ADD
     // orbital_period
@@ -33,7 +34,11 @@ impl Planet {
     }
 
     pub fn get_population_support(&self) -> u64 {
-        self.get_surface_area() as u64 * (12 * 1000000000_u64 / 500)
+        let insolation_penalty = f32::min(100.0,f32::max(self.insolation*self.insolation, 1.0 / (self.insolation*self.insolation)));
+
+        let earth_ref_capacity = 12 * 1000000000_u64;
+        let earth_surface_area = 510;
+        self.get_surface_area() as u64 * (((earth_ref_capacity / earth_surface_area) * 100) / (insolation_penalty * 100.0) as u64)
     }
 
     // return pos rescaled to the general coordinate system
@@ -51,11 +56,12 @@ impl Planet {
             orbit_rad,
             period,
             orbital_date,
-            rng.gen_range(0.1..1.0)
+             rng.gen_range(0.1..1.0),
+            star.get_insolation(orbit_rad),
         )
     }
 
-    pub fn new(star_pos : Vec3, star_id : u32, orbit_radius : f32, orbital_period : u32, orbital_date : u32, radius : f32) -> Planet {
+    pub fn new(star_pos : Vec3, star_id : u32, orbit_radius : f32, orbital_period : u32, orbital_date : u32, radius : f32, insolation : f32) -> Planet {
         let mut planet = Planet {
             au_scaled_pos : Vec3::ZERO,
             star_id,
@@ -63,7 +69,8 @@ impl Planet {
             orbit_radius,
             orbital_period,
             orbital_date,
-            radius
+            radius,
+            insolation
         };
         planet.update_position();
         planet

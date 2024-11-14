@@ -15,6 +15,10 @@ pub struct Star {
     pub name : String,
 }
 
+// Ref
+// - https://exoplanetarchive.ipac.caltech.edu/docs/poet_calculations.html
+
+
 impl Star {
     fn system_radius_au(&self) -> f32 {
         7.0
@@ -49,8 +53,14 @@ impl Star {
         self.mass.powf(0.625) * 5772.0
     }
 
-    pub fn _get_luminosity(&self) -> f32 {
+    pub fn get_luminosity(&self) -> f32 {
         self.mass.powf(3.5)
+    }
+
+    // insolation per unit area, in Earth units
+    // Distance is Au
+    pub fn get_insolation(&self, distance_au : f32) -> f32 {
+        self.get_luminosity() / (distance_au * distance_au)
     }
 
     fn simple_planck(temperature : f32) -> Vec3 {

@@ -54,14 +54,15 @@ impl Population {
         self.planet_capacity = planet.get_population_support() as i64;
         self.birth_rate = IFraction::new(10,50);
 
-        let birth = self.decade_birth_rate();
-        let death_rate : IFraction = IFraction::new(self.pop.stock * 10, self.planet_capacity * 50);
+        let birth = self.pop.stock * IFraction::new(10,50);//;self.decade_birth_rate();
+        let mut death_rate = IFraction::new(self.pop.stock * 10,self.planet_capacity * 50);//IFraction = IFraction::new(self.pop.stock * 10, self.planet_capacity * 50);
+        death_rate.brute_simplify();
         self.death_rate = death_rate;
         let death = self.pop.stock * death_rate;
 
         self.births = birth;
         self.deaths = death;
-
+ 
         self.pop.set_change_per_decade(birth-death);
         self.pop.increment_daily();
     }

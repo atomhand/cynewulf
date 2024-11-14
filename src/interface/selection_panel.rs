@@ -191,7 +191,7 @@ fn update_widget_system(
                     text.sections[1].value = "".to_string();
                     text.sections[0].value = format!("Panel Details for planet {}", desc[panel.slot as usize].name);
                     if let Ok((planet,colony)) = planet_colony_query.get(star_and_orbiters[panel.slot as usize]) {
-                        text.sections[0].value = format!("Size: {}\n", planet.radius);
+                        text.sections[0].value = format!("Size: {} | Insolation: {}\n", planet.radius, planet.insolation);
                         if let Some(colony) = colony {
                             text.sections[1].value = format!("{}\n\n{}", colony.population.details(), colony.economy);
                         }
