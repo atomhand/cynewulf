@@ -76,6 +76,7 @@ pub fn place_star_empires(mut commands : Commands,
                 let (_,star,mut star_claim) = star_query.get_mut(star_entity).unwrap();
                 star_claim.owner = Some(new_empire);
                 commands.entity(planet_entity).insert(Colony {
+                    claimed_tick : 0,
                     owner : new_empire,
                     population : Population::new(9e9 as i64),
                     economy : Economy::new()

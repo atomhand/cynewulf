@@ -89,6 +89,7 @@ pub fn setup_stars(mut commands : Commands,
     
             let parent = commands.spawn((
                 StarClaim {
+                    claimed_tick : 0,
                     owner : None
                 },
                 SystemIndex::default(),

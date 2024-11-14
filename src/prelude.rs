@@ -24,7 +24,8 @@ pub use crate::galaxy::{
 };
 
 pub use crate::simulation::{
-    SimStart,SimPreTick,SimTick,SimPostTick,BuildGalaxyGraphics
+    SimStart,SimPreTick,SimTick,SimPostTick,BuildGalaxyGraphics,
+    SimulationSettings
 };
 
 pub use crate::util::number::*;

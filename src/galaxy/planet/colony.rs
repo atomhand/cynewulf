@@ -6,6 +6,7 @@ use crate::prelude::*;
 #[derive(Component)]
 pub struct Colony {
     pub owner : Entity,
+    pub claimed_tick : i64,
     pub population : Population,
     pub economy : Economy
 }
@@ -24,5 +25,6 @@ impl Colony {
 
 #[derive(Component)]
 pub struct StarClaim {
-    pub owner : Option<Entity>
+    pub owner : Option<Entity>,
+    pub claimed_tick : i64
 }
