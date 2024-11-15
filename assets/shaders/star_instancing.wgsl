@@ -97,7 +97,7 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let dpdx = dpdx(in.uv);//vec2(dpdx(in.uv),dpdy(in.uv));
     let dpdy = dpdy(in.uv);
 
-    let intensity = 1.0 / 512.0;//.02*exp(-15.*rnd(1));
+    let intensity = 1.0 / 256.0;//.02*exp(-15.*rnd(1));
     var starcol  = draw_star(in.uv + dpdx * weights_8[0].x + dpdy * weights_8[0].y, in.color.rgb, intensity);
     starcol     += draw_star(in.uv + dpdx * weights_8[1].x + dpdy * weights_8[1].y, in.color.rgb, intensity);
     starcol     += draw_star(in.uv + dpdx * weights_8[2].x + dpdy * weights_8[2].y, in.color.rgb, intensity);
@@ -106,7 +106,7 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     starcol     += draw_star(in.uv + dpdx * weights_8[5].x + dpdy * weights_8[5].y, in.color.rgb, intensity);
     starcol     += draw_star(in.uv + dpdx * weights_8[6].x + dpdy * weights_8[6].y, in.color.rgb, intensity);
     starcol     += draw_star(in.uv + dpdx * weights_8[7].x + dpdy * weights_8[7].y, in.color.rgb, intensity);
-    starcol = starcol / 4.0;
+    starcol = starcol / 8.0;
 
     let a = (starcol.x+starcol.y+starcol.z)/3.0;
 
