@@ -18,7 +18,7 @@ impl Colony {
         self.population.val() / 30000000 // 30e6
     }
     pub fn get_daily_colony_ship_construction(&self) -> i64 {
-        self.economy.advanced_growth / 100
+        self.economy.advanced_infra / 3000000
     }
 }
 

@@ -22,7 +22,7 @@ pub fn finish_create_colony(
 
 pub fn place_star_empires(mut commands : Commands,
     mut star_query : Query<(Entity,&Star, &mut StarClaim)>,
-    planet_query : Query<&Planet, Without<Star>>,
+    mut planet_query : Query<&mut Planet, Without<Star>>,
     mut used_planet_names : ResMut<super::markov_chain::UsedPlanetNames>,
     mut player_empire : ResMut<crate::galaxy::empire::PlayerEmpire>,
     hypernet : Res<Hypernet>
@@ -81,6 +81,11 @@ pub fn place_star_empires(mut commands : Commands,
                     population : Population::new(9e9 as i64),
                     economy : Economy::new()
                 });
+
+                // dumb hack, fix later
+                let mut planet = planet_query.get_mut(planet_entity).unwrap();
+                planet.radius = 0.1;
+                planet.orbit_radius = 1.0;
 
                 claimed_systems.insert(star_entity);
                 claimed_ids.push(star.node_id);

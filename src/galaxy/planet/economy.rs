@@ -8,7 +8,7 @@ use crate::prelude::*;
 pub struct Economy {
     light_infra : i64,
     heavy_infra : i64,
-    advanced_infra : i64,
+    pub advanced_infra : i64,
 
     light_growth : i64,
     heavy_growth : i64,
