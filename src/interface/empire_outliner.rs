@@ -17,7 +17,8 @@ struct SelectionPanelTabRoot {
 
 #[derive(Component)]
 struct SelectionPanelTabHeader {
-    slot : i32
+    slot : i32,
+    material : Handle<StarIconMaterial>
 }
 #[derive(Component)]
 struct SelectionPanelTabDetails {
@@ -137,21 +138,22 @@ fn setup_widget(
                 },
             ))
             .with_children(|parent| {
+                let mat = materials.add(StarIconMaterial {
+                    //radius : 1.0,
+                    color : Vec4::splat(1.0)
+                });
                 parent.spawn(MaterialNodeBundle {
                     style : Style {
                         width: Val::Px(32.0),
                         height : Val::Px(32.0),
                         .. default()
                     },
-                    material : materials.add(StarIconMaterial {
-                        //radius : 1.0,
-                        color : Vec4::splat(1.0)
-                    }),
+                    material : mat.clone(),
                     ..default()
                 });
                 let label = format!("Tab {}  ", i.to_string());
                 parent.spawn((
-                    SelectionPanelTabHeader { slot : i as i32},
+                    SelectionPanelTabHeader { slot : i as i32, material : mat },
                     TextBundle {
                         background_color : Color::srgba(0.2,0.2,0.2, 0.5).into(),
                         text: Text::from_sections([
@@ -196,9 +198,10 @@ fn update_widget_system(
     mut header_query: Query<(&mut Text,&SelectionPanelTabHeader), Without<SelectionPanelTabRoot>>,
     mut details_query: Query<(&mut Text, &mut Style, &SelectionPanelTabDetails), (Without<SelectionPanelTabRoot>,Without<SelectionPanelTabHeader>)>,
     selection : Res<Selection>,
-    star_query : Query<(&Description,&SystemIndex), Without<SelectionPanelTabHeader>>,
+    star_query : Query<(&Description,&SystemIndex,&Star), Without<SelectionPanelTabHeader>>,
     player_empire : Res<PlayerEmpire>,
-    empires_index : Query<&EmpireIndex>
+    empires_index : Query<&EmpireIndex>,
+    mut star_icon_materials : ResMut<Assets<StarIconMaterial>>,
 ) {
     if selection.is_changed() {
         let Some(empire) = player_empire.empire else { 
@@ -219,14 +222,17 @@ fn update_widget_system(
         // color: Srgba::from_vec3(star.get_color()).to_f32_array(),
 
         for (mut text, panel) in header_query.iter_mut() {
-            if panel.slot < len {
+            if panel.slot < len {                
+                let mat = star_icon_materials.get_mut(&panel.material).unwrap();
+                mat.color = Vec4::from((desc[panel.slot as usize].2.get_color(),1.0));
+
                 text.sections[0].value = format!("{} ", desc[panel.slot as usize].0.name);
                 text.sections[0].style.color = Color::WHITE;
                 text.sections[1].value = format!("({})", desc[panel.slot as usize].1.population.format_big_number());
                 text.sections[1].style.color = desc[panel.slot as usize].0.type_color();
             }
         }
-        for (mut text, mut style, panel) in details_query.iter_mut() {
+        for (_text, mut style, panel) in details_query.iter_mut() {
             if panel.slot < len {
                 style.display = Display::None;
                 /*
