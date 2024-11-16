@@ -44,7 +44,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
     out.clip_position = position;
     out.color = vertex.i_color;
-    out.uv = vertex.position.xy * galaxy_billboard_scale;
+    out.uv = vertex.position.xy * mix(galaxy_billboard_scale,1.0,settings.system_transition_factor);
 
     return out;
 }
