@@ -30,8 +30,10 @@ struct VertexOutput {
 fn vertex(vertex: Vertex) -> VertexOutput {
     //let model = get_world_from_local(vertex.instance_index);
 
+    let galaxy_billboard_scale = 4.0;
+
     let star_radius = 0.0093;//vertex.i_pos_scale.w;
-    let scale_factor =  mix(7.0,star_radius * 30.0, settings.system_transition_factor);
+    let scale_factor =  mix(10.0 * galaxy_billboard_scale,star_radius * 30.0, settings.system_transition_factor);
 
     let camera_right = normalize(vec3<f32>(view.clip_from_world.x.x, view.clip_from_world.y.x, view.clip_from_world.z.x));
     let camera_up = normalize(vec3<f32>(view.clip_from_world.x.y, view.clip_from_world.y.y, view.clip_from_world.z.y));
@@ -42,7 +44,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
     out.clip_position = position;
     out.color = vertex.i_color;
-    out.uv = vertex.position.xy;
+    out.uv = vertex.position.xy * galaxy_billboard_scale;
 
     return out;
 }
@@ -72,7 +74,7 @@ fn draw_star(pos : vec2<f32>, star_color : vec3<f32>, I : f32) -> vec3<f32> {
     d = length(pos * vec2<f32>(0.5,50.0)) * ARMS_SCALE;
     col += spectrum / (d*d*d) * (1.0 - settings.system_transition_factor);
 
-    return col ;//* (1.0 - smoothstep(0.9,1.0,length(pos)));
+    return col;// * (1.0 - smoothstep(0.75,1.0,length(pos)));
 }
 
 const weights_4 = array<vec2<f32>,4>(
