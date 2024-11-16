@@ -30,10 +30,10 @@ struct VertexOutput {
 fn vertex(vertex: Vertex) -> VertexOutput {
     //let model = get_world_from_local(vertex.instance_index);
 
-    let galaxy_billboard_scale = 4.0;
+    let billboard_scale_boost = 4.0;
 
     let star_radius = 0.0093;//vertex.i_pos_scale.w;
-    let scale_factor =  mix(10.0 * galaxy_billboard_scale,star_radius * 30.0, settings.system_transition_factor);
+    let scale_factor =  billboard_scale_boost * mix(10.0,star_radius * 30.0, settings.system_transition_factor);
 
     let camera_right = normalize(vec3<f32>(view.clip_from_world.x.x, view.clip_from_world.y.x, view.clip_from_world.z.x));
     let camera_up = normalize(vec3<f32>(view.clip_from_world.x.y, view.clip_from_world.y.y, view.clip_from_world.z.y));
@@ -44,7 +44,7 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     var out: VertexOutput;
     out.clip_position = position;
     out.color = vertex.i_color;
-    out.uv = vertex.position.xy * mix(galaxy_billboard_scale,1.0,settings.system_transition_factor);
+    out.uv = vertex.position.xy * billboard_scale_boost;//mix(galaxy_billboard_scale,1.0,settings.system_transition_factor);
 
     return out;
 }
