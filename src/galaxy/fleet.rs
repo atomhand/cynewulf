@@ -53,36 +53,28 @@ impl FleetBundle {
     }
 }
 
-use crate::camera::{CameraSettings,CameraMode,CameraMain};
+use crate::camera::CameraMain;
 
 pub fn fleet_preview_gizmos(
-    nav_query : Query<(Entity,&NavPosition,&Navigator, &Fleet)>,
+    nav_query : Query<(Entity,&NavPosition, &Fleet)>,
     empire_query : Query<&Empire>,
     hypernet : Res<Hypernet>,
-    camera_settings : Res<CameraSettings>,
     selection : Res<Selection>,
     camera : Query<&CameraMain>,
     mut gizmos : Gizmos
 ) {
     let cam = camera.get_single().unwrap();
     let transition = cam.adjusted_mode_transition();
-    for (entity, nav_pos,navigator,fleet) in nav_query.iter() {
+    for (entity, nav_pos,fleet) in nav_query.iter() {
         let empire = empire_query.get(fleet.owner).unwrap();
         let galaxy = nav_pos.galaxy_view_translation(&hypernet);
         let system = nav_pos.system_view_translation(&hypernet);
 
         let scale = f32::lerp(1.0,GalaxyConfig::SOLAR_RADIUS, transition);
-        //gizmos.sphere(galaxy.lerp(system,transition), Quat::IDENTITY, scale, empire.color);
-        gizmos.circle(galaxy.lerp(system,transition), Dir3::Y, scale * 0.75, empire.color);
+        
+        gizmos.circle(galaxy.lerp(system,transition), Dir3::Y, scale * 0.8, empire.color);
 
-        let indicator_col = match navigator.action {
-            Action::Idle => Color::linear_rgb(0.25,0.25,0.25),
-            Action::Move(_) => Color::linear_rgb(0.0,1.0,0.0),
-            Action::Colonise(_) => Color::linear_rgb(0.0,0.0,1.0),
-            _ => Color::NONE
-        };
-
-        let col = selection.get_selection_state(entity).as_colour_with_default(indicator_col);
+        let col = selection.get_selection_state(entity).as_colour_with_default(Color::NONE);
 
         gizmos.circle(galaxy.lerp(system,transition), Dir3::Y, scale * 1.5, col);
     }
