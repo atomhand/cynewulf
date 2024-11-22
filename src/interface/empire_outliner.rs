@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::galaxy::{Selection,GalaxyConfig};
+use crate::galaxy::Selection;
 use bevy_mod_picking::prelude::*;
 use crate::prelude::*;
 use super::UiConsts;
@@ -216,15 +216,10 @@ fn update_widget_system(
         let desc = empire_stars.iter().map(|x| star_query.get(*x).unwrap()).collect::<Vec<_>>();
         let len = empire_stars.len() as i32;
 
-        // UPDATE MATERIALS
-
-        // star_radius: star.get_scaled_radius(),
-        // color: Srgba::from_vec3(star.get_color()).to_f32_array(),
-
         for (mut text, panel) in header_query.iter_mut() {
             if panel.slot < len {                
-                let mat = star_icon_materials.get_mut(&panel.material).unwrap();
-                mat.color = Vec4::from((desc[panel.slot as usize].2.get_color(),1.0));
+                let star_mat = star_icon_materials.get_mut(&panel.material).unwrap();
+                star_mat.color = Vec4::from((desc[panel.slot as usize].2.get_color(),1.0));
 
                 text.sections[0].value = format!("{} ", desc[panel.slot as usize].0.name);
                 text.sections[0].style.color = Color::WHITE;

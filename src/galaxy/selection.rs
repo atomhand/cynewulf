@@ -361,7 +361,7 @@ pub struct SystemSelectable {
 
 fn selection_gizmos(
     selection : Res<Selection>,
-    galaxy_selectable_query : Query<(&GalaxySelectable,&GlobalTransform)>,
+    //galaxy_selectable_query : Query<(&GalaxySelectable,&GlobalTransform)>,
     system_selectable_query : Query<(&SystemSelectable,&GlobalTransform)>,
     camera_settings : Res<CameraSettings>,
     mut gizmos : Gizmos

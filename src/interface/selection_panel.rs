@@ -35,7 +35,7 @@ impl Plugin for SelectionPanelPlugin {
 
 
 fn setup_widget(
-    mut commands: Commands,
+    mut commands: Commands
 ) {
     let text_style = TextStyle {
         font_size: UiConsts::STANDARD_UI_FONT_SIZE,

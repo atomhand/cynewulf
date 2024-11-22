@@ -28,8 +28,6 @@ pub fn nav_update_task_system(
     }
 }
 
-use crate::galaxy::navigation_filter::{NavigationFilter,NavigationMask};
-
 pub fn nav_find_colony_target_system(
     mut nav_query : Query<(&NavPosition, &Fleet, &mut FleetColonyCrew)>,
     system_query : Query<(&Star,&StarClaim)>,
@@ -50,7 +48,7 @@ pub fn nav_find_colony_target_system(
                 let nav_mask = nav_masks.get(empire).expect("Nav find colony target: Can't find empire nav mask");            
                 let nav_filter = nav_mask.to_filter(&hypernet);
 
-                let (dest_planet,_entity, colony) = planet_query.get(dest).unwrap();
+                let (dest_planet,_entity, _colony) = planet_query.get(dest).unwrap();
 
                 let path = nav_filter.find_path(nav_pos.root_system,dest_planet.star_id);
 
@@ -85,8 +83,8 @@ pub fn nav_find_colony_target_system(
             if starclaim.owner != None && starclaim.owner != Some(empire) { continue; }
 
             for (_planet,planet_entity,colony) in star.orbiters.iter().filter_map(|planet_entity| planet_query.get(*planet_entity).ok()) {
-                let weight = if let Some(colony) = colony {
-                    i32::MAX //d //* 10 * i64::min(10000,colony.population.val() / 10000) as i32
+                let weight = if let Some(_colony) = colony {                    
+                    10000000 + rng.gen_range(0..1000000)
                 } else {
                     d + rng.gen_range(0..d+1)
                 };
@@ -115,6 +113,7 @@ pub fn process_colonise_events  (
     mut fleet_query : Query<(&Fleet, &mut FleetColonyCrew, &mut Navigator)>,
     mut star_query: Query<&mut StarClaim, With<Star>>,
     mut ev_colonise : EventReader<ColonisePlanetEvent>,
+    sim_settings : Res<SimulationSettings>,
     mut commands : Commands
 ) {
     for ev in ev_colonise.read() {
@@ -132,6 +131,7 @@ pub fn process_colonise_events  (
                 continue;
             }
         } else {
+            star_claim.claimed_tick = sim_settings.current_tick;
             star_claim.owner = Some(fleet.owner);
         }
 
@@ -148,6 +148,7 @@ pub fn process_colonise_events  (
             // (And achieving deterministic execution only requires us to ensure the loop iterates in the right order)
             commands.entity(ev.planet_entity)
                 .insert(Colony {
+                    claimed_tick : sim_settings.current_tick,
                     owner : fleet.owner,
                     population : Population::new(colony_crew.colonists),
                     economy : Economy::new()

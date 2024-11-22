@@ -47,6 +47,6 @@ impl Plugin for GalaxySetupPlugin {
             .insert_resource(Hypernet::new())
             .insert_resource(empire::PlayerEmpire { empire : None })
             //.insert_resource(SelectedObject{hovered_star : None})
-            .add_systems(Update, (description::update_descriptions_system));
+            .add_systems(Update, description::update_descriptions_system);
     }
 }
