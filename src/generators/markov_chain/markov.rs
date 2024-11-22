@@ -109,19 +109,32 @@ impl MarkovChainModel {
         context.iter().collect()
     }
 
-    fn sample(&self, seq : &Vec<char>) -> char {
+    fn sample(&self, seq : &Vec<char>) -> Option<char> {
         let context = self.backoff(seq);
-        return  self.counts[&context].sample();
+
+        return  self.counts.get(&context).and_then(|x| Some(x.sample()));
+    }
+    
+    pub fn generate(&self) -> String {
+        return self.generate_iter(0);
     }
 
-    pub fn generate(&self) -> String {
+    fn generate_iter(&self, iter : i32) -> String {
         let mut seq : Vec<char> = Vec::new();
 
-        while seq.len() == 0 || seq[seq.len()-1] != Self::ENDCHAR {
-            seq.push(self.sample(&seq));
+        if iter >= 1000 {
+            return "FAILED_NAME_GENERATION".to_string();
         }
 
-        seq[..seq.len()-1].iter().collect()
+        while seq.len() == 0 || seq[seq.len()-1] != Self::ENDCHAR {
+            if let Some(next_sample) = self.sample(&seq) {
+                seq.push(next_sample);
+            } else {
+                return self.generate_iter(iter+1);
+            }
+        }
+
+        return seq[..seq.len()-1].iter().collect();
     }
 
     // default for prior 0.01?
