@@ -14,7 +14,9 @@ impl Plugin for CameraPlugin {
     }
 }
 
-fn spawn_camera(mut commands: Commands) {
+fn spawn_camera(mut commands: Commands,
+    mut clearcolor : ResMut<ClearColor>) {
+    *clearcolor =  ClearColor(Color::BLACK);
     commands.spawn((
         // NEED TO SET CLEAR COLOR TO BLACK...
         Camera3d {
