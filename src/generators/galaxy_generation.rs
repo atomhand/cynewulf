@@ -98,8 +98,8 @@ pub fn setup_stars(mut commands : Commands,
                 GalaxySelectable{ radius : 10.0 },
                 Description::star(starname),
                 crate::galaxy::fleet::SystemFleetInfo::default(),
-                TransformBundle::from_transform(Transform::from_translation(star_pos)),
-                VisibilityBundle::default()
+                Transform::from_translation(star_pos),
+                Visibility::Inherited
             )).id();
 
             let star_handle = galaxy_index.register_star(parent, node_id.index());
@@ -110,7 +110,7 @@ pub fn setup_stars(mut commands : Commands,
 
             hypernet.graph.node_weight_mut(node_id).unwrap().star = Some(star_handle);
     
-            commands.entity(parent).insert(star).push_children(&planets);
+            commands.entity(parent).insert(star).add_children(&planets);
 
             for p in planets {
                 let planet_handle = galaxy_index.register_planet(star_handle, p);
@@ -119,7 +119,7 @@ pub fn setup_stars(mut commands : Commands,
         } else {
             commands.spawn((
                 OverlaysTriangulationVertex{ node_id : node_id.index() as u32 },
-                TransformBundle::from_transform(Transform::from_translation(star_pos))
+                Transform::from_translation(star_pos)
             ));
         }
     }

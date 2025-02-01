@@ -72,10 +72,10 @@ pub fn fleet_preview_gizmos(
 
         let scale = f32::lerp(1.0,GalaxyConfig::SOLAR_RADIUS, transition);
         
-        gizmos.circle(galaxy.lerp(system,transition), Dir3::Y, scale * 0.8, empire.color);
+        gizmos.circle(Isometry3d::from_translation(galaxy.lerp(system,transition)), scale * 0.8, empire.color);
 
         let col = selection.get_selection_state(entity).as_colour_with_default(Color::NONE);
 
-        gizmos.circle(galaxy.lerp(system,transition), Dir3::Y, scale * 1.5, col);
+        gizmos.circle(Isometry3d::from_translation(galaxy.lerp(system,transition)), scale * 1.5, col);
     }
 }

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use bevy_mod_picking::backend::prelude::*;
+use bevy::picking::backend::prelude::*;
 use bevy::render::view::RenderLayers;
 
 use crate::camera::{CameraMain,CameraSettings, CameraMode};

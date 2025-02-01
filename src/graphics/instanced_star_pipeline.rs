@@ -10,7 +10,7 @@ use bevy::{
     },
     render::{
         extract_component::{ExtractComponent, ExtractComponentPlugin},
-        mesh::{GpuBufferInfo, GpuMesh, MeshVertexBufferLayoutRef},
+        mesh::{allocator::MeshAllocator,RenderMesh,MeshVertexBufferLayoutRef,RenderMeshBufferInfo},
         render_asset::RenderAssets,
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
@@ -20,6 +20,7 @@ use bevy::{
         renderer::{RenderDevice,RenderQueue},
         view::ExtractedView,
         Render, RenderApp, RenderSet,
+        sync_world::MainEntity
     },
 };
 use bytemuck::{Pod, Zeroable};
@@ -79,20 +80,18 @@ pub struct StarInstanceData {
 fn queue_custom(
     transparent_3d_draw_functions: Res<DrawFunctions<Transparent3d>>,
     star_pipeline: Res<StarPipeline>,
-    msaa: Res<Msaa>,
     mut pipelines: ResMut<SpecializedMeshPipelines<StarPipeline>>,
     pipeline_cache: Res<PipelineCache>,
-    meshes: Res<RenderAssets<GpuMesh>>,
+    meshes: Res<RenderAssets<RenderMesh>>,
     render_mesh_instances: Res<RenderMeshInstances>,
-    material_meshes: Query<Entity, With<StarInstanceMaterialData>>,
+    material_meshes: Query<(Entity, &MainEntity), With<StarInstanceMaterialData>>,
     mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent3d>>,
-    mut views: Query<(Entity, &ExtractedView)>,
+    mut views: Query<(Entity, &ExtractedView, &Msaa)>,
 ) {
     let draw_star = transparent_3d_draw_functions.read().id::<DrawStar>();
 
-    let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
-
-    for (view_entity, view) in &mut views {
+    for (view_entity, view, msaa) in &mut views {
+        let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
         let Some(transparent_phase) = transparent_render_phases.get_mut(&view_entity) else {
             continue;
         };
@@ -100,8 +99,8 @@ fn queue_custom(
         let view_key = msaa_key | MeshPipelineKey::from_hdr(view.hdr);
 
         let rangefinder = view.rangefinder3d();
-        for entity in &material_meshes {
-            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(entity) else {
+        for (entity, main_entity) in &material_meshes {
+            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity) else {
                 continue;
             };
             let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
@@ -115,7 +114,7 @@ fn queue_custom(
                 .specialize(&pipeline_cache, &star_pipeline, key, &mesh.layout)
                 .unwrap();
             transparent_phase.add(Transparent3d {
-                entity,
+                entity : (entity, *main_entity),
                 pipeline,
                 draw_function: draw_star,
                 distance: rangefinder.distance_translation(&mesh_instance.translation),
@@ -287,7 +286,7 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetStarUniformsBindGroup
     ) -> RenderCommandResult {
         let bindgroup = bindgroup.into_inner();
         let Some(bindgroup) = &bindgroup.bind_group else {
-            return RenderCommandResult::Failure;
+            return RenderCommandResult::Failure("Failed to acquire bind group");
         };
         pass.set_bind_group(I, bindgroup, &[0]);
         RenderCommandResult::Success
@@ -297,7 +296,7 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetStarUniformsBindGroup
 struct DrawMeshInstanced;
 // PRETTY MUCH JUST BOILERPLATE
 impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
-    type  Param = (SRes<RenderAssets<GpuMesh>>, SRes<RenderMeshInstances>);
+    type  Param = (SRes<RenderAssets<RenderMesh>>, SRes<RenderMeshInstances>, SRes<MeshAllocator>);
     type ViewQuery = ();
     type ItemQuery = Read<InstanceBuffer>;
 
@@ -306,34 +305,47 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         item: &P,
         _view: (),
         instance_buffer: Option<&'w InstanceBuffer>,
-        (meshes,render_mesh_instances): SystemParamItem<'w, '_, Self::Param>,
+        (meshes,render_mesh_instances, mesh_allocator): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>
     ) -> RenderCommandResult {
-        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.entity())
+        let mesh_allocator = mesh_allocator.into_inner();
+        
+        let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.main_entity())
         else {
-            return RenderCommandResult::Failure;
+            return RenderCommandResult::Skip;
         };
         let Some(gpu_mesh) = meshes.into_inner().get(mesh_instance.mesh_asset_id) else {
-            return RenderCommandResult::Failure;
+            return RenderCommandResult::Skip;
         };
         let Some(instance_buffer) = instance_buffer else {
-            return RenderCommandResult::Failure;
+            return RenderCommandResult::Skip;
+        };
+        let Some(vertex_buffer_slice) = mesh_allocator.mesh_vertex_slice(&mesh_instance.mesh_asset_id) else {
+            return RenderCommandResult::Skip;
         };
 
-        pass.set_vertex_buffer(0, gpu_mesh.vertex_buffer.slice(..));
+
+        pass.set_vertex_buffer(0, vertex_buffer_slice.buffer.slice(..));
         pass.set_vertex_buffer(1, instance_buffer.buffer.slice(..));
 
         match &gpu_mesh.buffer_info {
-            GpuBufferInfo::Indexed {
-                buffer,
+            RenderMeshBufferInfo::Indexed {
                 index_format,
                 count,
             } => {
-                pass.set_index_buffer(buffer.slice(..),0, *index_format);
-                pass.draw_indexed(0..*count, 0, 0..instance_buffer.length as u32);
+                let Some(index_buffer_slice) = mesh_allocator.mesh_index_slice(&mesh_instance.mesh_asset_id) else {
+                    return RenderCommandResult::Skip;
+                };
+
+                pass.set_index_buffer(index_buffer_slice.buffer.slice(..),0, *index_format);
+                pass.draw_indexed(
+                    index_buffer_slice.range.start..(index_buffer_slice.range.start + count), 
+                    vertex_buffer_slice.range.start as i32,
+                     0..instance_buffer.length as u32
+                );
             }
-            GpuBufferInfo::NonIndexed => {
-                pass.draw(0..gpu_mesh.vertex_count, 0..instance_buffer.length as u32);
+            RenderMeshBufferInfo::NonIndexed => {
+                pass.draw(vertex_buffer_slice.range, 0..instance_buffer.length as u32);
             }
         }
         RenderCommandResult::Success

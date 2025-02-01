@@ -24,21 +24,20 @@ fn finish_assemble_star_system(
 ) {
     for (planet,entity) in &planets {
         commands.entity(entity).insert(
-            MaterialMeshBundle {
-                mesh :  meshes.add(Rectangle::from_size(Vec2::splat(2.0))),
-                material: planet_materials.add(PlanetBillboardMaterial::new(Vec3::new(1.0,0.5,0.0), planet.star_pos, planet.get_visual_radius())),
-                visibility : Visibility::Inherited,
-                transform : Transform::from_translation(planet.system_local_pos()),
-                ..default()
-            }
+            (
+                Mesh3d(meshes.add(Rectangle::from_size(Vec2::splat(2.0)))),
+                MeshMaterial3d(planet_materials.add(PlanetBillboardMaterial::new(Vec3::new(1.0,0.5,0.0), planet.star_pos, planet.get_visual_radius()))),
+                Visibility::Inherited,
+                Transform::from_translation(planet.system_local_pos())
+            )
         );
     }
 }
 
 pub fn update_planet_materials(
-    planet_query : Query<(&Handle<PlanetBillboardMaterial>,Option<&Colony>)>,
-    star_query : Query<&Star, Without<Handle<PlanetBillboardMaterial>>>,
-    empire_query : Query<&Empire, Without<Handle<PlanetBillboardMaterial>>>,
+    planet_query : Query<(&MeshMaterial3d<PlanetBillboardMaterial>,Option<&Colony>)>,
+    star_query : Query<&Star>,
+    empire_query : Query<&Empire>,
     mut planet_materials : ResMut<Assets<PlanetBillboardMaterial>>,
     selection : Res<Selection>
 ) {
@@ -74,8 +73,9 @@ fn star_gfx(
 ) {
     let billboardmesh = meshes.add(Rectangle::from_size(Vec2::splat(2.0)));
     commands.spawn((
-        billboardmesh.clone(),
-        SpatialBundle::INHERITED_IDENTITY,
+        Mesh3d(billboardmesh.clone()),
+        Transform::IDENTITY,
+        Visibility::Inherited,
         super::instanced_star_pipeline::StarInstanceMaterialData(
             stars.iter().map(|(star,_)|
             super::instanced_star_pipeline::StarInstanceData {
@@ -96,7 +96,7 @@ pub fn draw_system_overlays(
     if cam.camera_mode == CameraMode::Star {
         if let Some(star_id) = cam.star {
             if let Ok(star) = stars.get(star_id) {
-                gizmos.circle(star.pos, Dir3::Y, star.system_radius_actual(), Color::WHITE);
+                gizmos.circle( Isometry3d::from_translation(star.pos), star.system_radius_actual(), Color::WHITE);
             }
         }
     }

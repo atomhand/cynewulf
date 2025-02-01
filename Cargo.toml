@@ -16,11 +16,10 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.14.2" }
+bevy = { version = "0.15" }
 bevy_framepace = { version = "0.17" }
 noisy_bevy = "0.7.0"
 delaunator = "1.0.2"
 rand = "0.8.5"
-bevy_mod_picking = "0.20.1"
 petgraph = "0.6.5"
 bytemuck = "1.17.0"

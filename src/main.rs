@@ -1,13 +1,10 @@
-#![feature(isqrt)]
-
 use bevy::prelude::*;
-use bevy_mod_picking;
 use bevy::window::{PresentMode, WindowTheme};
 mod camera;
 mod galaxy;
 mod graphics;
 mod simulation;
-mod interface;
+//mod interface;
 mod prelude;
 mod util;
 mod generators;
@@ -32,13 +29,13 @@ fn main() {
                 }),
                 ..default()
             }),
-            bevy_framepace::FramepacePlugin,
+            //   -- Lack Bevy 0.15 support
+            //bevy_framepace::FramepacePlugin,
             simulation::SimulationPlugin,
             galaxy::GalaxySetupPlugin,
             graphics::GraphicsPlugin,
-            interface::InterfacePlugin,
+            //interface::InterfacePlugin,
             camera::CameraPlugin,
-            bevy_mod_picking::DefaultPickingPlugins,
             generators::GalaxyGenerationPlugin
         ))
         .run();

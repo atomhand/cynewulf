@@ -2,6 +2,7 @@
 use delaunator::{Point,triangulate};
 
 use bevy::prelude::*;
+use bevy::render::storage::ShaderStorageBuffer;
 use crate::galaxy::{Star,OverlaysTriangulationVertex};
 use crate::prelude::*;
 
@@ -35,9 +36,11 @@ struct StarFormat {
 #[derive(Asset,TypePath,AsBindGroup,Debug,Clone)]
 struct TerritoryOverlaysMaterial {
     #[storage(1, read_only)]
-    star_data_buffer : Vec<StarFormat>,
+    star_data_buffer : Handle<ShaderStorageBuffer>,
+    //star_data_buffer : Vec<StarFormat>,
     #[storage(2, read_only)]
-    edge_data_buffer : Vec<LaneFormat>,
+    //edge_data_buffer : Vec<LaneFormat>,
+    edge_data_buffer : Handle<ShaderStorageBuffer>,
     alpha_mode : AlphaMode,
 }
 
@@ -86,6 +89,8 @@ struct StarGfxTag {
 #[derive(Resource)]
 struct OverlaysData {
     _mesh_handle : Handle<Mesh>,
+    star_data : Vec<StarFormat>,
+    edge_data : Vec<LaneFormat>,
     material_handle : Handle<TerritoryOverlaysMaterial>
 }
 
@@ -106,21 +111,22 @@ fn update_overlays(
     stars_query : Query<&Star>,
     empire_query : Query<&Empire>,
     mut mats : ResMut<Assets<TerritoryOverlaysMaterial>>,
-    overlays_data : Res<OverlaysData>,
+    mut overlays_data : ResMut<OverlaysData>,
+    mut buffers : ResMut<Assets<ShaderStorageBuffer>>,
     selection : Res<crate::galaxy::Selection>,
     hypernet : Res<Hypernet>
 ) {
-    let Some(mat) = mats.get_mut(&overlays_data.material_handle) else { return; };
-
+    let mut any_change = false;
     if selection.is_changed() {
-        for edge in &mut mat.edge_data_buffer {
+        any_change = true;
+        for edge in &mut overlays_data.edge_data {
             edge.color = Vec3::new(1.0,0.75,0.0);
         }
         if let Some(star_b) = selection.hovered.and_then(|b| stars_query.get(b).ok()) {
             if let Some(star_a) = selection.selected_system.and_then(|a| stars_query.get(a).ok()) {
                 if let Some(path) = hypernet.find_path(star_a.node_id, star_b.node_id) {
                     for edge in path.edges {
-                        mat.edge_data_buffer[edge as usize].color = Vec3::new(1.0,0.0,0.0);
+                        overlays_data.edge_data[edge as usize].color = Vec3::new(1.0,0.0,0.0);
                     }
                 }
             }
@@ -140,10 +146,11 @@ fn update_overlays(
             let empire_halo_col = claim.owner.and_then(|empire| Some(selection.get_selection_state(empire).as_colour())).unwrap_or(Color::NONE);
             let selection_halo = selection.get_selection_state(entity).as_colour();
     
-            mat.star_data_buffer[tag.id as usize].system_halo = selection_halo.to_linear().to_vec4();
-            mat.star_data_buffer[tag.id as usize].empire_halo = empire_halo_col.to_linear().to_vec4();
-            mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
+            overlays_data.star_data[tag.id as usize].system_halo = selection_halo.to_linear().to_vec4();
+            overlays_data.star_data[tag.id as usize].empire_halo = empire_halo_col.to_linear().to_vec4();
+            overlays_data.star_data[tag.id as usize].color = col.to_vec4();
         }
+
     } else {
         for (entity, tag,claim) in &star_changed_update_query {
             let col : Srgba = if let Some(owner) = claim.owner {
@@ -155,12 +162,23 @@ fn update_overlays(
             let empire_halo_col = claim.owner.and_then(|empire| Some(selection.get_selection_state(empire).as_colour())).unwrap_or(Color::NONE);
             let selection_halo = selection.get_selection_state(entity).as_colour();
     
-            mat.star_data_buffer[tag.id as usize].system_halo = selection_halo.to_linear().to_vec4();
-            mat.star_data_buffer[tag.id as usize].empire_halo = empire_halo_col.to_linear().to_vec4();
-            mat.star_data_buffer[tag.id as usize].color = col.to_vec4();
+            overlays_data.star_data[tag.id as usize].system_halo = selection_halo.to_linear().to_vec4();
+            overlays_data.star_data[tag.id as usize].empire_halo = empire_halo_col.to_linear().to_vec4();
+            overlays_data.star_data[tag.id as usize].color = col.to_vec4();
+
+            any_change = true;
         }
     }
 
+    if any_change {
+        let Some(mat) = mats.get_mut(&overlays_data.material_handle) else { return; };
+        if let Some(star_buffer) = buffers.get_mut(&mat.star_data_buffer) {
+            star_buffer.set_data(overlays_data.star_data.as_slice());
+        }
+        if let Some(edge_buffer) = buffers.get_mut(&mat.edge_data_buffer) {
+            edge_buffer.set_data(overlays_data.edge_data.as_slice());
+        }
+    }
 } 
 
 use crate::galaxy::selection::GalaxySelectable;
@@ -177,6 +195,7 @@ fn generate_overlays_mesh(
     mut commands : Commands,
     mut meshes : ResMut<Assets<Mesh>>,
     mut materials : ResMut<Assets<TerritoryOverlaysMaterial>>,
+    mut buffers : ResMut<Assets<ShaderStorageBuffer>>,
     hypernet : Res<Hypernet>
 ) {
     let mut points = Vec::<Point>::new();
@@ -291,21 +310,19 @@ fn generate_overlays_mesh(
     ));
 
     let material = materials.add(TerritoryOverlaysMaterial {
-        star_data_buffer : star_data,
-        edge_data_buffer : edge_data,
+        star_data_buffer : buffers.add(ShaderStorageBuffer::from(star_data.clone())),
+        edge_data_buffer : buffers.add(ShaderStorageBuffer::from(edge_data.clone())),
         alpha_mode : AlphaMode::Blend }
     );
 
     commands.insert_resource(OverlaysData{
         _mesh_handle : mesh.clone(),
+        star_data,
+        edge_data,
         material_handle : material.clone()
     });
 
     commands.spawn(
-        MaterialMeshBundle {
-            mesh,
-            material : material,
-            ..default()
-        }
+        (Mesh3d(mesh), MeshMaterial3d(material))
     );
 }

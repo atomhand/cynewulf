@@ -5,10 +5,9 @@ use crate::prelude::*;
 pub struct SelectionPlugin;
 use std::collections::HashSet;
 
-use bevy_mod_picking::{
+use bevy::picking::{
     prelude::*,
     backend::prelude::*,
-    pointer::InputPress,
     focus::HoverMap
 };
 
@@ -264,11 +263,9 @@ pub fn update_selected_empire (
 fn update_selection (
     mut selection : ResMut<Selection>,
     mut pointer_down: EventReader<Pointer<Down>>,
-    mut presses: EventReader<InputPress>,
     galaxy_selectable_query : Query<&GalaxySelectable,>,
     system_selectable_query : Query<&SystemSelectable>,
     selection_proxy_query : Query<&SelectionProxy>,
-    no_deselect : Query<&NoDeselect>,
     star_query : Query<&Star>,
     camera_settings : Res<CameraSettings>,
     frame_count : Res<bevy::core::FrameCount>
@@ -292,7 +289,7 @@ fn update_selection (
 
         pointer_down_list.insert(*pointer_id);
         if let Some(selected) = selection.selected {
-            let target_can_deselect = no_deselect.get(target).is_err();
+            let target_can_deselect = true;//no_deselect.get(target).is_err();
             if target_can_deselect && selected != target {
                 selection.selected = None;
 
@@ -332,6 +329,7 @@ fn update_selection (
         }
     }
 
+    /*
     if let Some(press) = presses
         .read()
         .filter(|p| p.is_just_down(PointerButton::Primary))
@@ -347,6 +345,7 @@ fn update_selection (
             }
         }
     }
+    */
 }
 
 #[derive(Component)]
@@ -371,12 +370,12 @@ fn selection_gizmos(
         CameraMode::Star => {
             if let Some(selected) = selection.selected {
                 if let Ok((selectable,transform)) = system_selectable_query.get(selected) {
-                    gizmos.circle(transform.translation(), Dir3::Y, selectable.radius * 0.9, Color::srgb(1.,0.4,0.));
+                    gizmos.circle(Isometry3d::from_translation(transform.translation()), selectable.radius * 0.9, Color::srgb(1.,0.4,0.));
                 }
             }
             if let Some(hovered) = selection.hovered {
                 if let Ok((selectable,transform)) = system_selectable_query.get(hovered) {
-                    gizmos.circle(transform.translation(), Dir3::Y, selectable.radius, Color::WHITE);
+                    gizmos.circle(Isometry3d::from_translation(transform.translation()), selectable.radius, Color::WHITE);
                 }
             }
         },

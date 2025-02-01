@@ -15,16 +15,13 @@ impl Plugin for CameraPlugin {
 }
 
 fn spawn_camera(mut commands: Commands) {
-    commands.spawn(
-        (Camera3dBundle {
-            camera : Camera {
-                clear_color : ClearColorConfig::Custom(Color::srgb(0.0,0.0,0.0)),
-                ..default()
-            },
-            transform: Transform::from_xyz(10.0,12.0,16.0)
-            .looking_at(Vec3::ZERO, Vec3::Y),
-            ..default()
+    commands.spawn((
+        // NEED TO SET CLEAR COLOR TO BLACK...
+        Camera3d {
+            .. default()
         },
+        Transform::from_xyz(10.0,12.0,16.0)
+        .looking_at(Vec3::ZERO, Vec3::Y),
         CameraMain::default())
     );
 }
@@ -145,7 +142,7 @@ pub fn camera_control_system(
 
     let cursor = window.cursor_position(); // cache this cause we will use it twice
     let mouse_world_pos = cursor
-        .and_then(|cursor| cam.viewport_to_world(&GlobalTransform::from(*transform),cursor ))
+        .and_then(|cursor| cam.viewport_to_world(&GlobalTransform::from(*transform),cursor ).ok())
         .map(|ray| 
             ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y))
             .map(|distance|
@@ -209,14 +206,14 @@ pub fn camera_control_system(
         }
     }
 
-    let transition_speed = 4.0 * time.delta_seconds();
+    let transition_speed = 4.0 * time.delta_secs();
 
     let old_zoom = camera_main.zoom;
 
     // Update 
     match camera_settings.camera_mode {
         CameraMode::Star => {
-            let speed: f32 = GalaxyConfig::AU_SCALE * 6.0 * time.delta_seconds();
+            let speed: f32 = GalaxyConfig::AU_SCALE * 6.0 * time.delta_secs();
             camera_main.star_local_pos += key_delta * speed;
 
             if camera_main.star_local_pos.length() > camera_main.system_radius {
@@ -237,7 +234,7 @@ pub fn camera_control_system(
             }        
             camera_main.zoom = camera_main.zoom.clamp(0., 1.);
             let tzoom = camera_main.zoom * 0.85 + 0.15;        
-            let speed: f32 = (tzoom* galaxy_scale) * 0.5 * time.delta_seconds();
+            let speed: f32 = (tzoom* galaxy_scale) * 0.5 * time.delta_secs();
             camera_main.target_pos += key_delta * speed;
             let d = camera_main.target_pos.xz().length();
             if d > galaxy_config.radius {
@@ -258,7 +255,7 @@ pub fn camera_control_system(
         transform.look_at(camera_main.look_pos(camera_main.adjusted_mode_transition()), Vec3::Y);
 
         let Some(mouse_pos) = cursor
-        .and_then(|cursor| cam.viewport_to_world(&GlobalTransform::from(*transform),cursor ))
+        .and_then(|cursor| cam.viewport_to_world(&GlobalTransform::from(*transform),cursor ).ok())
         .map(|ray| 
             ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y))
             .map(|distance|

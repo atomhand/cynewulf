@@ -78,7 +78,7 @@ fn simulation_start_system(world : &mut World) {
 }
 
 fn simulation_tick_system(world : &mut World) {
-    let delta_seconds = world.resource::<Time>().delta_seconds();
+    let delta_seconds = world.resource::<Time>().delta_secs();
     let mut sim_settings = world.resource_mut::<SimulationSettings>();
 
     if let Some(tick_interval) = sim_settings.get_tick_interval() {
