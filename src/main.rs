@@ -8,6 +8,7 @@ mod simulation;
 mod prelude;
 mod util;
 mod generators;
+mod interface_new;
 
 use std::env;
 
@@ -34,6 +35,7 @@ fn main() {
             simulation::SimulationPlugin,
             galaxy::GalaxySetupPlugin,
             graphics::GraphicsPlugin,
+            interface_new::InterfacePlugin,
             //interface::InterfacePlugin,
             camera::CameraPlugin,
             generators::GalaxyGenerationPlugin
