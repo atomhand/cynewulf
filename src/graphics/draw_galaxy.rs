@@ -88,6 +88,7 @@ fn star_gfx(
     ));
 }
 
+
 pub fn draw_system_overlays(
     stars : Query<&Star>,
     cam : Res<CameraSettings>,
@@ -96,7 +97,10 @@ pub fn draw_system_overlays(
     if cam.camera_mode == CameraMode::Star {
         if let Some(star_id) = cam.star {
             if let Ok(star) = stars.get(star_id) {
-                gizmos.circle( Isometry3d::from_translation(star.pos), star.system_radius_actual(), Color::WHITE);
+                gizmos.circle( 
+                    Isometry3d::new(Vec3::new(star.pos.x,0.0,star.pos.z),
+                    Quat::from_rotation_x(std::f32::consts::PI / 2.0))
+                    , star.system_radius_actual(), Color::WHITE);
             }
         }
     }

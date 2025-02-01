@@ -370,12 +370,13 @@ fn selection_gizmos(
         CameraMode::Star => {
             if let Some(selected) = selection.selected {
                 if let Ok((selectable,transform)) = system_selectable_query.get(selected) {
-                    gizmos.circle(Isometry3d::from_translation(transform.translation()), selectable.radius * 0.9, Color::srgb(1.,0.4,0.));
+
+                    gizmos.circle(Isometry3d::new(transform.translation(), Quat::from_rotation_x(std::f32::consts::PI / 2.0)), selectable.radius * 0.9, Color::srgb(1.,0.4,0.));
                 }
             }
             if let Some(hovered) = selection.hovered {
                 if let Ok((selectable,transform)) = system_selectable_query.get(hovered) {
-                    gizmos.circle(Isometry3d::from_translation(transform.translation()), selectable.radius, Color::WHITE);
+                    gizmos.circle(Isometry3d::new(transform.translation(),Quat::from_rotation_x(std::f32::consts::PI / 2.0)), selectable.radius, Color::WHITE);
                 }
             }
         },

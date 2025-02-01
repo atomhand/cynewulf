@@ -71,11 +71,13 @@ pub fn fleet_preview_gizmos(
         let system = nav_pos.system_view_translation(&hypernet);
 
         let scale = f32::lerp(1.0,GalaxyConfig::SOLAR_RADIUS, transition);
+
+        let isometry = Isometry3d::new(galaxy.lerp(system,transition),Quat::from_rotation_x(std::f32::consts::PI / 2.0)); 
         
-        gizmos.circle(Isometry3d::from_translation(galaxy.lerp(system,transition)), scale * 0.8, empire.color);
+        gizmos.circle(isometry, scale * 0.8, empire.color);
 
         let col = selection.get_selection_state(entity).as_colour_with_default(Color::NONE);
 
-        gizmos.circle(Isometry3d::from_translation(galaxy.lerp(system,transition)), scale * 1.5, col);
+        gizmos.circle(isometry, scale * 1.5, col);
     }
 }
