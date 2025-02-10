@@ -130,19 +130,19 @@ impl Economy {
 impl fmt::Display for Economy {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Output: \n")?;
-        write!(f, "   Light: {} \n", self.light_output.format_big_number())?;
-        write!(f, "   Heavy: {} \n", self.heavy_output.format_big_number())?;
+        write!(f, "   Light:    {} \n", self.light_output.format_big_number())?;
+        write!(f, "   Heavy:    {} \n", self.heavy_output.format_big_number())?;
         write!(f, "   Advanced: {} \n", self.advanced_output.format_big_number())?;
 
         write!(f, "Infrastructure: \n")?;
-        write!(f, "   Light: {} (+{}) \n", self.light_infra.format_big_number(), self.light_growth.format_big_number())?;
-        write!(f, "   Heavy: {} (+{}) \n", self.heavy_infra.format_big_number(), self.heavy_growth.format_big_number())?;
-        write!(f, "   Advanced: {} (+{}) \n", self.advanced_infra.format_big_number(), self.advanced_growth.format_big_number())?;
+        write!(f, "   Light:    {:<8} (+{}) \n", self.light_infra.format_big_number(), self.light_growth.format_big_number())?;
+        write!(f, "   Heavy:    {:<8} (+{}) \n", self.heavy_infra.format_big_number(), self.heavy_growth.format_big_number())?;
+        write!(f, "   Advanced: {:<8} (+{}) \n", self.advanced_infra.format_big_number(), self.advanced_growth.format_big_number())?;
 
 
         write!(f, "\nDepreciation Rate:{} \n", self.infra_depreciation_rate)?;
-        write!(f, "Savings Rate:{} \n", self.savings_rate)?;
-        write!(f, "Basic Workers:{} \n", self.basic_workers.format_big_number())?;
-        write!(f, "Engineers:{} (+{}) \n", self.advanced_workers.format_big_number(), self.engineer_growth.format_big_number())
+        write!(f, "Savings Rate:  {} \n", self.savings_rate)?;
+        write!(f, "Basic Workers: {} \n", self.basic_workers.format_big_number())?;
+        write!(f, "Engineers:     {:<8} (+{}) \n", self.advanced_workers.format_big_number(), self.engineer_growth.format_big_number())
     }
 }

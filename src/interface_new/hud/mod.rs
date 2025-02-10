@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 mod time_widget;
 mod empire_outliner;
+mod system_outliner;
 pub struct HudPlugin;
 
 struct UiConsts;
@@ -28,7 +29,8 @@ impl Plugin for HudPlugin {
         app.add_systems(Update,selection_proxy_highlight);
         app.add_plugins((
             time_widget::TimeWidgetPlugin,
-            empire_outliner::EmpireOutlinerPlugin
+            empire_outliner::EmpireOutlinerPlugin,
+            system_outliner::SystemOutlinerPlugin
         ));
     }
 }

@@ -41,7 +41,7 @@ impl Population {
     }
 
     pub fn details(&self) -> String {
-        format!("Capacity: {}\nBirth Rate {} | Death Rate: {}\n Births : {} | Deaths : {} | Net : {}",
+        format!("Capacity: {}\nBirth Rate: {:<7} | Death Rate: {:<7}\nBirths: {:<7} | Deaths: {:<7} | Net: {:<7}",
             self.planet_capacity.format_big_number(),
             self.birth_rate.display_as_percent(),
             self.death_rate.display_as_percent(),
