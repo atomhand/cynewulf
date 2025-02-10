@@ -16,7 +16,7 @@ pub fn setup_stars(mut commands : Commands,
     mut hypernet : ResMut<Hypernet>,
     mut galaxy_index : ResMut<GalaxyIndex>
 ) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut points : Vec<Point> = Vec::with_capacity(galaxy_config.max_stars as usize);
     let min_sqd = galaxy_config.spacing * galaxy_config.spacing;
 
@@ -25,8 +25,8 @@ pub fn setup_stars(mut commands : Commands,
         // TODO: Account for galactic star density function
         // -- SImple way: (try first) Reservoir sampling -- Less simple: acceleration structure
         for _j in 0..100 {
-            let r = galaxy_config.radius * rng.gen::<f32>().sqrt();
-            let theta = 2.0 * PI * rng.gen::<f32>();
+            let r = galaxy_config.radius * rng.random::<f32>().sqrt();
+            let theta = 2.0 * PI * rng.random::<f32>();
             let point = Point {
                 x : (r * theta.cos()) as f64,
                 y : (r * theta.sin()) as f64
@@ -71,7 +71,7 @@ pub fn setup_stars(mut commands : Commands,
             let rad = star.get_scaled_radius();
             let starname = star.name.clone();
             
-            let num_planets = rng.gen_range(0..8);
+            let num_planets = rng.random_range(0..8);
             let mut planets : Vec::<Entity> = Vec::new();
     
             for i in 0..num_planets {

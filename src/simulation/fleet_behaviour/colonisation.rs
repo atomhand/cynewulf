@@ -62,7 +62,7 @@ pub fn nav_find_colony_target_system(
             }
         };
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let mut best_option : Option<Entity> = None;
         let mut best_dist = i32::MAX;
@@ -84,9 +84,9 @@ pub fn nav_find_colony_target_system(
 
             for (_planet,planet_entity,colony) in star.orbiters.iter().filter_map(|planet_entity| planet_query.get(*planet_entity).ok()) {
                 let weight = if let Some(_colony) = colony {                    
-                    10000000 + rng.gen_range(0..1000000)
+                    10000000 + rng.random_range(0..1000000)
                 } else {
-                    d + rng.gen_range(0..d+1)
+                    d + rng.random_range(0..d+1)
                 };
     
                 if weight < best_dist {

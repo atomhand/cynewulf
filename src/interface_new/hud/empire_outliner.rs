@@ -126,7 +126,6 @@ fn setup_widget(
                         is_hoverable : false
                     })
                 );
-                let label = format!("Tab {}  ", i.to_string());
                 parent.spawn((
                     SelectionPanelTabHeader { slot : i as i32, material : mat },
                     Text("N/A".to_string()),
