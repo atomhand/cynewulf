@@ -143,10 +143,10 @@ fn update_widget_system(
                     // try grab colony
                     if let Ok((planet,colony)) = planet_colony_query.get(star_and_orbiters[panel.slot as usize]) {
                         let colony_details = if let Some(colony) = colony {
-                            format!("{}\n\n{}", colony.population.details(), colony.economy)
+                            format!("\n\n{}\n\n{}", colony.population.details(), colony.economy)
                         } else { "".to_string() };
 
-                        *text = Text(format!("Size: {} | Insolation: {}\n\n{}", planet.radius, planet.insolation, colony_details));
+                        *text = Text(format!("Size: {} | Insolation: {}{}", planet.radius, planet.insolation, colony_details));
                     } else {
                         *text = Text(format!("Panel Details for body {}", desc[panel.slot as usize].name));
                     }
