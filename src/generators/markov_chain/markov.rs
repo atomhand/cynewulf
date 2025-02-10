@@ -1,5 +1,6 @@
 use std::collections::{HashMap,HashSet};
-use rand::prelude::*;
+
+use rand::{rng, prelude::*};
 
 // Primary reference - https://www.roguebasin.com/index.php?title=Names_from_a_high_order_Markov_Process_and_a_simplified_Katz_back-off_scheme
 
@@ -33,7 +34,7 @@ impl ObservedCount {
 
     fn sample(&self) -> char {
         // sample a char from counts, weighted by the associated count/weight
-        let r = thread_rng().gen_range(0.0..self.total);
+        let r = rng().random_range(0.0..self.total);
 
         let mut running_count = 0.0;
         for (char,weight) in self.counts.iter() {

@@ -17,7 +17,7 @@ pub struct PlanetNameGenerator {
     markov : MarkovChainModel,
 }
 
-use rand::seq::SliceRandom;
+use rand::prelude::*;
 
 impl PlanetNameGenerator {
     // just the list of exoplanet proper names from wikipedia, for now
@@ -229,7 +229,7 @@ impl PlanetNameGenerator {
     }
 
     fn create_biased_input_set() -> Vec::<String> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let ascii_only = Self::SOURCE_NAMES.into_iter().filter(|x| x.is_ascii()).collect::<Vec<_>>();
 

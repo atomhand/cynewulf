@@ -1,6 +1,6 @@
 
 use bevy::prelude::*;
-use rand::prelude::*;
+use rand::rng;
 use std::collections::HashSet;
 
 use crate::galaxy::Description;
@@ -32,7 +32,7 @@ pub fn place_star_empires(mut commands : Commands,
     let mut claimed_ids = Vec::new();
     let mut claimed_systems : HashSet<Entity> = HashSet::new();
 
-    let mut rng = thread_rng();
+    let mut rng = rng();
 
     for _i in 0..num_empires {
         let mut best : Option<(Entity,Entity,i32)> = None;
