@@ -7,6 +7,20 @@ use super::fleet_behaviour::{colonisation, navigation};
 use super::orbits;
 use super::time;
 
+#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
+pub struct SimStart;
+
+#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
+pub struct SimPreTick;
+#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
+pub struct SimTick;
+
+#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
+pub struct BuildGalaxyGraphics;
+
+#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
+pub struct SimPostTick;
+
 pub struct SchedulePlugin;
 
 impl Plugin for SchedulePlugin {
@@ -23,7 +37,7 @@ impl Plugin for SchedulePlugin {
                 colonisation::nav_update_task_system,
                 colonisation::process_colonise_events,
             )
-                .chain(), //crate::galaxy::indexes::empires_index::update_empire_index_system // this could be organised in a more hierarchical way
+                .chain(),
         ));
 
         let mut pre_tick_schedule = Schedule::new(SimPreTick);
@@ -41,17 +55,3 @@ impl Plugin for SchedulePlugin {
             .add_schedule(build_graphics_schedule);
     }
 }
-
-#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
-pub struct SimStart;
-
-#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
-pub struct SimPreTick;
-#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
-pub struct SimTick;
-
-#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
-pub struct BuildGalaxyGraphics;
-
-#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
-pub struct SimPostTick;
