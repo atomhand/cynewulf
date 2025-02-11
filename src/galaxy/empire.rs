@@ -1,44 +1,46 @@
-use bevy::prelude::*;
-use rand::prelude::*;
+use super::indexes::EmpireIndex;
 use super::navigation_filter::NavigationMask;
 use crate::prelude::*;
-use super::indexes::EmpireIndex;
+use bevy::prelude::*;
+use rand::prelude::*;
 
-use crate::generators::markov_chain::{UsedPlanetNames,PlanetNameGenerator};
+use crate::generators::markov_chain::{PlanetNameGenerator, UsedPlanetNames};
 
 #[derive(Component)]
 pub struct Empire {
-    pub color : Color,
-    pub name : String,
-    pub namegen : PlanetNameGenerator
+    pub color: Color,
+    pub name: String,
+    pub namegen: PlanetNameGenerator,
 }
 
 #[derive(Bundle)]
 pub struct EmpireBundle {
-    empire : Empire,
-    nav_mask : NavigationMask,
-    empire_index : EmpireIndex
+    empire: Empire,
+    nav_mask: NavigationMask,
+    empire_index: EmpireIndex,
 }
 
 impl Empire {
-    pub fn random(rng : &mut ThreadRng, hypernet : &Hypernet, used_planet_names : &mut UsedPlanetNames) -> EmpireBundle {
+    pub fn random(
+        rng: &mut ThreadRng,
+        hypernet: &Hypernet,
+        used_planet_names: &mut UsedPlanetNames,
+    ) -> EmpireBundle {
         let mut namegen = PlanetNameGenerator::new(used_planet_names);
 
-
         EmpireBundle {
-            empire : Self {
-                color : Color::srgb(rng.gen(),rng.gen(),rng.gen()),
-                name : namegen.next(used_planet_names),
-                namegen : namegen,
+            empire: Self {
+                color: Color::srgb(rng.gen(), rng.gen(), rng.gen()),
+                name: namegen.next(used_planet_names),
+                namegen: namegen,
             },
-            nav_mask : NavigationMask::new(hypernet, true),
-            empire_index : default()
+            nav_mask: NavigationMask::new(hypernet, true),
+            empire_index: default(),
         }
     }
 }
 
-
 #[derive(Resource)]
 pub struct PlayerEmpire {
-    pub empire : Option<Entity>
+    pub empire: Option<Entity>,
 }

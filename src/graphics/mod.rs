@@ -1,5 +1,3 @@
-
-
 use bevy::prelude::*;
 
 mod instanced_star_pipeline;
@@ -18,7 +16,12 @@ use draw_galaxy::draw_system_overlays;
 
 impl Plugin for GraphicsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((ui_materials::UiMaterialsPlugin,galaxy_materials::StarBillboardPlugin, draw_galaxy::DrawGalaxyPlugin,territory_overlay::OverlaysPlugin))
-            .add_systems(Update, draw_system_overlays);
+        app.add_plugins((
+            ui_materials::UiMaterialsPlugin,
+            galaxy_materials::StarBillboardPlugin,
+            draw_galaxy::DrawGalaxyPlugin,
+            territory_overlay::OverlaysPlugin,
+        ))
+        .add_systems(Update, draw_system_overlays);
     }
 }

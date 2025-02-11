@@ -1,8 +1,8 @@
 use bevy::prelude::*;
-mod time;
-mod orbits;
 mod economy;
+mod orbits;
 mod schedule;
+mod time;
 
 mod mission;
 
@@ -12,26 +12,26 @@ pub mod data;
 
 pub use time::SimTime;
 
-pub use schedule::{SimTick,SimPreTick,SimPostTick,SimStart,BuildGalaxyGraphics};
+pub use schedule::{BuildGalaxyGraphics, SimPostTick, SimPreTick, SimStart, SimTick};
 
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub enum SimulationMode {
     Slow,
     Normal,
     Fast,
-    Fastest
+    Fastest,
 }
 
 #[derive(Resource)]
 pub struct SimulationSettings {
-    pub paused : bool,
-    pub mode : SimulationMode,
-    current_tick : i64,
-    time_since_tick : f32
+    pub paused: bool,
+    pub mode: SimulationMode,
+    current_tick: i64,
+    time_since_tick: f32,
 }
 
 impl SimulationSettings {
-    pub fn set_speed(&mut self, speed : SimulationMode) {
+    pub fn set_speed(&mut self, speed: SimulationMode) {
         self.time_since_tick = 0.0;
         self.mode = speed;
     }
@@ -58,26 +58,28 @@ impl SimulationSettings {
     }
 
     pub fn get_tick_interval(&self) -> Option<f32> {
-        if self.paused { return None; }
+        if self.paused {
+            return None;
+        }
 
         match self.mode {
             SimulationMode::Slow => Some(1.0),
             SimulationMode::Normal => Some(0.3),
             SimulationMode::Fast => Some(0.1),
-            SimulationMode::Fastest => Some(0.015)
+            SimulationMode::Fastest => Some(0.015),
         }
     }
 }
 
 pub struct SimulationPlugin;
 
-fn simulation_start_system(world : &mut World) {
+fn simulation_start_system(world: &mut World) {
     world.run_schedule(SimStart);
     world.run_schedule(SimPostTick);
     world.run_schedule(BuildGalaxyGraphics);
 }
 
-fn simulation_tick_system(world : &mut World) {
+fn simulation_tick_system(world: &mut World) {
     let delta_seconds = world.resource::<Time>().delta_secs();
     let mut sim_settings = world.resource_mut::<SimulationSettings>();
 
@@ -98,12 +100,22 @@ fn simulation_tick_system(world : &mut World) {
 use fleet_behaviour::colonisation;
 
 impl Plugin for SimulationPlugin {
-    fn build(&self, app : &mut App) {
-
+    fn build(&self, app: &mut App) {
         app.insert_resource(SimTime::new())
-            .insert_resource(SimulationSettings{ mode : SimulationMode::Normal, paused : true, time_since_tick : 0.0, current_tick : 0})
-            .add_systems(PostStartup,simulation_start_system)
-            .add_systems(Update,(simulation_tick_system,crate::galaxy::fleet::fleet_preview_gizmos))
+            .insert_resource(SimulationSettings {
+                mode: SimulationMode::Normal,
+                paused: true,
+                time_since_tick: 0.0,
+                current_tick: 0,
+            })
+            .add_systems(PostStartup, simulation_start_system)
+            .add_systems(
+                Update,
+                (
+                    simulation_tick_system,
+                    crate::galaxy::fleet::fleet_preview_gizmos,
+                ),
+            )
             .add_plugins(schedule::SchedulePlugin)
             .add_plugins(mission::planet_launch_colony::PlanetAutoColonyMissionPlugin)
             .add_event::<colonisation::ColonisePlanetEvent>();

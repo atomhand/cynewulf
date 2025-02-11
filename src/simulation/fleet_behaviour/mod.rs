@@ -1,3 +1,2 @@
-
-pub mod navigation;
 pub mod colonisation;
+pub mod navigation;

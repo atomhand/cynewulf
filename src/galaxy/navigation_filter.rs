@@ -1,19 +1,17 @@
-use bevy::prelude::*;
+use super::hypernet_pathfinding::{Path, Pathfinding};
 use crate::prelude::*;
+use bevy::prelude::*;
 use std::collections::BinaryHeap;
-use super::hypernet_pathfinding::{Pathfinding,Path};
 
 pub fn update_empire_navigation_masks(
-    mut query :  Query<(Entity, &mut NavigationMask),With<Empire>>,
-    systems : Query<(&Star,&StarClaim)>
+    mut query: Query<(Entity, &mut NavigationMask), With<Empire>>,
+    systems: Query<(&Star, &StarClaim)>,
 ) {
     for (empire_entity, mut mask) in query.iter_mut() {
         mask.owned_systems.clear();
-        for (star,starclaim) in systems.iter() {
+        for (star, starclaim) in systems.iter() {
             match starclaim.owner {
-                None => {
-                    mask.passable_systems_mask[star.node_id as usize] = true
-                },
+                None => mask.passable_systems_mask[star.node_id as usize] = true,
                 Some(entity) => {
                     if entity == empire_entity {
                         mask.passable_systems_mask[star.node_id as usize] = true;
@@ -29,33 +27,33 @@ pub fn update_empire_navigation_masks(
 
 #[derive(Component)]
 pub struct NavigationMask {
-    passable_systems_mask : Vec<bool>,
-    pub owned_systems : Vec<u32>,
+    passable_systems_mask: Vec<bool>,
+    pub owned_systems: Vec<u32>,
 }
 
 impl<'a> NavigationMask {
-    pub fn new(hypernet : &Hypernet, default_passable : bool) -> Self {
+    pub fn new(hypernet: &Hypernet, default_passable: bool) -> Self {
         Self {
-            passable_systems_mask : vec![default_passable; hypernet.graph.node_count()],
-            owned_systems : Vec::new()
+            passable_systems_mask: vec![default_passable; hypernet.graph.node_count()],
+            owned_systems: Vec::new(),
         }
     }
 
-    pub fn to_filter(&'a self, hypernet : &'a Hypernet) -> NavigationFilter<'a> {
+    pub fn to_filter(&'a self, hypernet: &'a Hypernet) -> NavigationFilter<'a> {
         NavigationFilter {
-            mask : self,
-            hypernet
+            mask: self,
+            hypernet,
         }
     }
 }
 
 pub struct NavigationFilter<'a> {
     hypernet: &'a Hypernet,
-    mask : &'a NavigationMask
+    mask: &'a NavigationMask,
 }
 
 impl<'a> NavigationFilter<'a> {
-    fn is_passable(&self, index : usize) -> bool {
+    fn is_passable(&self, index: usize) -> bool {
         self.mask.passable_systems_mask[index]
     }
 }
@@ -63,8 +61,8 @@ impl<'a> NavigationFilter<'a> {
 use std::cmp::Ordering;
 #[derive(Eq)]
 struct DijkstraNode {
-    star : u32,
-    cost : i32,
+    star: u32,
+    cost: i32,
 }
 impl DijkstraNode {
     fn score(&self) -> i32 {
@@ -72,109 +70,139 @@ impl DijkstraNode {
     }
 }
 impl PartialEq for DijkstraNode {
-    fn eq(&self, other : &Self) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.score().eq(&other.score())
     }
 }
 impl PartialOrd for DijkstraNode {
-    fn partial_cmp(&self, other : &Self) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.score().partial_cmp(&other.score())
     }
 }
 
 impl Ord for DijkstraNode {
-    fn cmp(&self, other : &Self) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.score().cmp(&other.score())
     }
 }
 
 #[derive(Eq)]
 struct PathfindingNode {
-    star : u32,
-    parent : u32,
-    edge_to_parent : u32,
-    origin_dist : i32,
-    heuristic_val : i32
+    star: u32,
+    parent: u32,
+    edge_to_parent: u32,
+    origin_dist: i32,
+    heuristic_val: i32,
 }
 impl PathfindingNode {
     fn score(&self) -> i32 {
         0 - (self.origin_dist + self.heuristic_val)
     }
-    fn new(star : u32, parent : &PathfindingNode, dest_pos : Vec3, hypernet : &Hypernet) -> Self {
-        let edge_id = hypernet.graph.find_edge(star.into(),parent.star.into()).unwrap();
+    fn new(star: u32, parent: &PathfindingNode, dest_pos: Vec3, hypernet: &Hypernet) -> Self {
+        let edge_id = hypernet
+            .graph
+            .find_edge(star.into(), parent.star.into())
+            .unwrap();
         let edge_w = hypernet.graph.edge_weight(edge_id).unwrap();
         let pos = hypernet.graph.node_weight(star.into()).unwrap().pos;
         Self {
             star,
-            parent : parent.star,
-            edge_to_parent : edge_id.index() as u32,
-            origin_dist : parent.origin_dist + edge_w.length,
-            heuristic_val : (pos.distance(dest_pos)  * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32) as i32
+            parent: parent.star,
+            edge_to_parent: edge_id.index() as u32,
+            origin_dist: parent.origin_dist + edge_w.length,
+            heuristic_val: (pos.distance(dest_pos) * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32)
+                as i32,
         }
     }
 }
 impl PartialEq for PathfindingNode {
-    fn eq(&self, other : &Self) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.score().eq(&other.score())
     }
 }
 impl PartialOrd for PathfindingNode {
-    fn partial_cmp(&self, other : &Self) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.score().partial_cmp(&other.score())
     }
 }
 
 impl Ord for PathfindingNode {
-    fn cmp(&self, other : &Self) -> Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.score().cmp(&other.score())
     }
 }
 
 impl<'a> Pathfinding for NavigationFilter<'a> {
-    fn find_path_without_direct_edge(&self, star_a : u32, star_b : u32,) -> Option<Path> {
-        if star_a == star_b { return Some(Path { nodes : vec![star_a], edges : Vec::new() }); };
-        let (n,_) = self.hypernet.graph.capacity();
+    fn find_path_without_direct_edge(&self, star_a: u32, star_b: u32) -> Option<Path> {
+        if star_a == star_b {
+            return Some(Path {
+                nodes: vec![star_a],
+                edges: Vec::new(),
+            });
+        };
+        let (n, _) = self.hypernet.graph.capacity();
         let mut parent_id = vec![None; n];
         let mut closed = vec![false; n];
         let mut open = BinaryHeap::new();
-    
+
         let dest_pos = self.hypernet.graph.node_weight(star_b.into()).unwrap().pos;
-    
-        open.push(PathfindingNode{
-            star : star_a,
-            parent : star_a,
-            edge_to_parent : u32::MAX,
-            origin_dist : 0,
-            heuristic_val : (self.hypernet.graph.node_weight(star_a.into()).unwrap().pos.distance(dest_pos)  * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32) as i32
+
+        open.push(PathfindingNode {
+            star: star_a,
+            parent: star_a,
+            edge_to_parent: u32::MAX,
+            origin_dist: 0,
+            heuristic_val: (self
+                .hypernet
+                .graph
+                .node_weight(star_a.into())
+                .unwrap()
+                .pos
+                .distance(dest_pos)
+                * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32) as i32,
         });
         closed[star_a as usize] = true;
-    
+
         while let Some(top) = open.pop() {
-            parent_id[top.star as usize] = Some((top.parent,top.edge_to_parent));
-    
+            parent_id[top.star as usize] = Some((top.parent, top.edge_to_parent));
+
             if top.star == star_b {
                 break;
             }
-    
+
             for n in self.hypernet.graph.neighbors(top.star.into()) {
-                if top.star == star_a && n.index() as u32 == star_b { continue; }
-                if !self.is_passable(n.index()) { continue; }
+                if top.star == star_a && n.index() as u32 == star_b {
+                    continue;
+                }
+                if !self.is_passable(n.index()) {
+                    continue;
+                }
                 if !closed[n.index()] {
                     closed[n.index()] = true;
-                    open.push(PathfindingNode::new(n.index() as u32, &top,dest_pos, &self.hypernet));
+                    open.push(PathfindingNode::new(
+                        n.index() as u32,
+                        &top,
+                        dest_pos,
+                        &self.hypernet,
+                    ));
                 }
             }
         }
-    
+
         let mut path = Path::new();
         let mut curr = star_b;
-    
+
         loop {
             path.nodes.push(curr);
             if curr == star_a {
                 path.nodes.reverse();
                 path.edges.reverse();
-                assert!(path.nodes.len()== path.edges.len() + 1, "mismaTched number of path nodes ({}) and edges ({})", path.nodes.len(), path.edges.len());
+                assert!(
+                    path.nodes.len() == path.edges.len() + 1,
+                    "mismaTched number of path nodes ({}) and edges ({})",
+                    path.nodes.len(),
+                    path.edges.len()
+                );
                 return Some(path);
             }
             if let Some(c) = parent_id[curr as usize] {
@@ -185,49 +213,73 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
             }
         }
     }
-    fn find_path(&self, star_a : u32, star_b : u32,) -> Option<Path> {
-        if star_a == star_b { return Some(Path { nodes : vec![star_a], edges : Vec::new() }); };
-        let (n,_) = self.hypernet.graph.capacity();
+    fn find_path(&self, star_a: u32, star_b: u32) -> Option<Path> {
+        if star_a == star_b {
+            return Some(Path {
+                nodes: vec![star_a],
+                edges: Vec::new(),
+            });
+        };
+        let (n, _) = self.hypernet.graph.capacity();
         let mut parent_id = vec![None; n];
         let mut closed = vec![false; n];
         let mut open = BinaryHeap::new();
-    
+
         let dest_pos = self.hypernet.graph.node_weight(star_b.into()).unwrap().pos;
-    
-        open.push(PathfindingNode{
-            star : star_a,
-            parent : star_a,
-            edge_to_parent : u32::MAX,
-            origin_dist : 0,
-            heuristic_val : (self.hypernet.graph.node_weight(star_a.into()).unwrap().pos.distance(dest_pos)  * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32) as i32
+
+        open.push(PathfindingNode {
+            star: star_a,
+            parent: star_a,
+            edge_to_parent: u32::MAX,
+            origin_dist: 0,
+            heuristic_val: (self
+                .hypernet
+                .graph
+                .node_weight(star_a.into())
+                .unwrap()
+                .pos
+                .distance(dest_pos)
+                * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32) as i32,
         });
         closed[star_a as usize] = true;
-    
+
         while let Some(top) = open.pop() {
-            parent_id[top.star as usize] = Some((top.parent,top.edge_to_parent));
-    
+            parent_id[top.star as usize] = Some((top.parent, top.edge_to_parent));
+
             if top.star == star_b {
                 break;
             }
-    
+
             for n in self.hypernet.graph.neighbors(top.star.into()) {
-                if !self.is_passable(n.index()) { continue; }
+                if !self.is_passable(n.index()) {
+                    continue;
+                }
                 if !closed[n.index()] {
                     closed[n.index()] = true;
-                    open.push(PathfindingNode::new(n.index() as u32, &top,dest_pos, &self.hypernet));
+                    open.push(PathfindingNode::new(
+                        n.index() as u32,
+                        &top,
+                        dest_pos,
+                        &self.hypernet,
+                    ));
                 }
             }
         }
-    
+
         let mut path = Path::new();
         let mut curr = star_b;
-    
+
         loop {
             path.nodes.push(curr);
             if curr == star_a {
                 path.nodes.reverse();
                 path.edges.reverse();
-                assert!(path.nodes.len()== path.edges.len() + 1, "mismaTched number of path nodes ({}) and edges ({})", path.nodes.len(), path.edges.len());
+                assert!(
+                    path.nodes.len() == path.edges.len() + 1,
+                    "mismaTched number of path nodes ({}) and edges ({})",
+                    path.nodes.len(),
+                    path.edges.len()
+                );
                 return Some(path);
             }
             if let Some(c) = parent_id[curr as usize] {
@@ -238,53 +290,79 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
             }
         }
     }
-    
-    fn find_path_multi_source(&self, sources : &Vec<u32>, star_b : u32,) -> Option<Path> {
-        let sources_set : std::collections::HashSet<u32> = std::collections::HashSet::from_iter(sources.iter().cloned());
-        if sources_set.contains(&star_b) { return Some(Path { nodes : vec![star_b], edges : Vec::new() }); };
-        let (n,_) = self.hypernet.graph.capacity();
+
+    fn find_path_multi_source(&self, sources: &Vec<u32>, star_b: u32) -> Option<Path> {
+        let sources_set: std::collections::HashSet<u32> =
+            std::collections::HashSet::from_iter(sources.iter().cloned());
+        if sources_set.contains(&star_b) {
+            return Some(Path {
+                nodes: vec![star_b],
+                edges: Vec::new(),
+            });
+        };
+        let (n, _) = self.hypernet.graph.capacity();
         let mut parent_id = vec![None; n];
         let mut closed = vec![false; n];
         let mut open = BinaryHeap::new();
-    
+
         let dest_pos = self.hypernet.graph.node_weight(star_b.into()).unwrap().pos;
 
         for source_star in sources {
-            open.push(PathfindingNode{
-                star : *source_star,
-                parent : *source_star,
-                edge_to_parent : u32::MAX,
-                origin_dist : 0,
-                heuristic_val : (self.hypernet.graph.node_weight((*source_star).into()).unwrap().pos.distance(dest_pos)  * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32) as i32
+            open.push(PathfindingNode {
+                star: *source_star,
+                parent: *source_star,
+                edge_to_parent: u32::MAX,
+                origin_dist: 0,
+                heuristic_val: (self
+                    .hypernet
+                    .graph
+                    .node_weight((*source_star).into())
+                    .unwrap()
+                    .pos
+                    .distance(dest_pos)
+                    * GalaxyConfig::GALACTIC_INTEGER_SCALE as f32)
+                    as i32,
             });
             closed[*source_star as usize] = true;
-        }    
-    
+        }
+
         while let Some(top) = open.pop() {
-            parent_id[top.star as usize] = Some((top.parent,top.edge_to_parent));
-    
+            parent_id[top.star as usize] = Some((top.parent, top.edge_to_parent));
+
             if top.star == star_b {
                 break;
             }
-    
+
             for n in self.hypernet.graph.neighbors(top.star.into()) {
-                if !self.is_passable(n.index()) { continue; }
+                if !self.is_passable(n.index()) {
+                    continue;
+                }
                 if !closed[n.index()] {
                     closed[n.index()] = true;
-                    open.push(PathfindingNode::new(n.index() as u32, &top,dest_pos, &self.hypernet));
+                    open.push(PathfindingNode::new(
+                        n.index() as u32,
+                        &top,
+                        dest_pos,
+                        &self.hypernet,
+                    ));
                 }
             }
         }
-    
+
         let mut path = Path::new();
         let mut curr = star_b;
-    
+
         loop {
             path.nodes.push(curr);
             if sources_set.contains(&curr) {
                 path.nodes.reverse();
                 path.edges.reverse();
-                assert!(path.nodes.len()== path.edges.len() + 1, "mismaTched number of path nodes ({}) and edges ({})", path.nodes.len(), path.edges.len());
+                assert!(
+                    path.nodes.len() == path.edges.len() + 1,
+                    "mismaTched number of path nodes ({}) and edges ({})",
+                    path.nodes.len(),
+                    path.edges.len()
+                );
                 return Some(path);
             }
             if let Some(c) = parent_id[curr as usize] {
@@ -297,27 +375,36 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
     }
     ///
     /// Returns vec of distances corresponding to hypernet node ids
-    fn dijkstra(&self, input_points : &Vec<u32>) -> Vec<Option<i32>> {
-        let (n,_) = self.hypernet.graph.capacity();        
+    fn dijkstra(&self, input_points: &Vec<u32>) -> Vec<Option<i32>> {
+        let (n, _) = self.hypernet.graph.capacity();
         let mut open = BinaryHeap::new();
-        let mut result = vec![None;n];
+        let mut result = vec![None; n];
 
         for p in input_points {
-            open.push(DijkstraNode{star : *p, cost : 0});
+            open.push(DijkstraNode { star: *p, cost: 0 });
             result[*p as usize] = Some(0);
         }
-    
-        while let Some(top) = open.pop() {    
+
+        while let Some(top) = open.pop() {
             for n in self.hypernet.graph.neighbors(top.star.into()) {
-                if !self.is_passable(n.index()) { continue; }
+                if !self.is_passable(n.index()) {
+                    continue;
+                }
                 if result[n.index()] == None {
-                    let e = self.hypernet.graph.edge_weight(self.hypernet.graph.find_edge(top.star.into(),n).unwrap()).unwrap();
-                    result[n.index()] = Some(top.cost+e.length);
-                    open.push(DijkstraNode { star: n.index() as u32, cost : top.cost+e.length});
+                    let e = self
+                        .hypernet
+                        .graph
+                        .edge_weight(self.hypernet.graph.find_edge(top.star.into(), n).unwrap())
+                        .unwrap();
+                    result[n.index()] = Some(top.cost + e.length);
+                    open.push(DijkstraNode {
+                        star: n.index() as u32,
+                        cost: top.cost + e.length,
+                    });
                 }
             }
         }
-    
+
         return result;
     }
 }

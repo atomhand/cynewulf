@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::prelude::*;
+use bevy::prelude::*;
 
 pub mod indexes;
 
@@ -23,15 +23,15 @@ pub mod description;
 pub use description::Description;
 
 mod star;
-pub use star::{Star,OverlaysTriangulationVertex};
+pub use star::{OverlaysTriangulationVertex, Star};
 
 mod hypernet;
 pub use hypernet::Hypernet;
 
 mod planet;
-pub use planet::planet::Planet;
-pub use planet::colony::{StarClaim,Colony};
+pub use planet::colony::{Colony, StarClaim};
 pub use planet::economy::Economy;
+pub use planet::planet::Planet;
 
 pub mod empire;
 pub use empire::Empire;
@@ -40,13 +40,16 @@ pub struct GalaxySetupPlugin;
 
 impl Plugin for GalaxySetupPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((selection::SelectionPlugin, picking_backend::PickingBackendPlugin
-            , indexes::IndexPlugin))
-            .insert_resource(GalaxyConfig::default())
-            .insert_resource(GalaxyIndex::default())
-            .insert_resource(Hypernet::new())
-            .insert_resource(empire::PlayerEmpire { empire : None })
-            //.insert_resource(SelectedObject{hovered_star : None})
-            .add_systems(Update, description::update_descriptions_system);
+        app.add_plugins((
+            selection::SelectionPlugin,
+            picking_backend::PickingBackendPlugin,
+            indexes::IndexPlugin,
+        ))
+        .insert_resource(GalaxyConfig::default())
+        .insert_resource(GalaxyIndex::default())
+        .insert_resource(Hypernet::new())
+        .insert_resource(empire::PlayerEmpire { empire: None })
+        //.insert_resource(SelectedObject{hovered_star : None})
+        .add_systems(Update, description::update_descriptions_system);
     }
 }

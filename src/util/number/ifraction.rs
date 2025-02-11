@@ -1,16 +1,16 @@
 use std::ops;
 
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 pub struct IFraction {
-    numerator : i64,
-    denominator : i64
+    numerator: i64,
+    denominator: i64,
 }
 
 impl IFraction {
-    pub fn new(numerator : i64, denominator : i64) -> Self {
+    pub fn new(numerator: i64, denominator: i64) -> Self {
         Self {
             numerator,
-            denominator
+            denominator,
         }
     }
 
@@ -22,7 +22,7 @@ impl IFraction {
     }
 
     pub fn brute_simplify(&mut self) {
-        let coeff = i64::max(1,i64::min(self.numerator,self.denominator) / 10000);
+        let coeff = i64::max(1, i64::min(self.numerator, self.denominator) / 10000);
         self.numerator /= coeff;
         self.denominator /= coeff;
     }
@@ -31,8 +31,8 @@ impl IFraction {
 impl ops::Mul<IFraction> for i64 {
     type Output = i64;
 
-    fn mul(self, _rhs : IFraction) -> i64 {
+    fn mul(self, _rhs: IFraction) -> i64 {
         //(_rhs.numerator as i64 * self) / _rhs.denominator
-        i64::checked_mul(_rhs.numerator,self).unwrap() / _rhs.denominator
+        i64::checked_mul(_rhs.numerator, self).unwrap() / _rhs.denominator
     }
 }

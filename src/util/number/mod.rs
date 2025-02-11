@@ -1,8 +1,8 @@
-mod ifraction;
 mod format_number;
+mod ifraction;
 
 mod ipercent;
 
-pub use ipercent::IPercent;
-pub use ifraction::IFraction;
 pub use format_number::FormatNumber;
+pub use ifraction::IFraction;
+pub use ipercent::IPercent;

@@ -1,10 +1,8 @@
-use bevy::prelude::*;
 use crate::prelude::*;
+use bevy::prelude::*;
 
-pub fn update_population(
-    mut colony_query : Query<(&mut Colony, &Planet)>
-) {
-    for (mut colony,planet) in colony_query.iter_mut() {
+pub fn update_population(mut colony_query: Query<(&mut Colony, &Planet)>) {
+    for (mut colony, planet) in colony_query.iter_mut() {
         colony.population.increment_daily(planet);
 
         let pop = colony.population.val();

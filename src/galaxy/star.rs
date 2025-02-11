@@ -1,40 +1,44 @@
-use bevy::prelude::*;
 use super::GalaxyConfig;
+use bevy::prelude::*;
 use rand::prelude::*;
 
 #[derive(Component)]
 pub struct OverlaysTriangulationVertex {
-    pub node_id : u32
+    pub node_id: u32,
 }
 
 #[derive(Component)]
 pub struct Star {
-    pub pos : Vec3,
-    pub node_id : u32,
-    pub orbiters : Vec::<Entity>, // includes self id at index [0]
-    pub mass : f32, // in stellar masses
-    pub name : String,
+    pub pos: Vec3,
+    pub node_id: u32,
+    pub orbiters: Vec<Entity>, // includes self id at index [0]
+    pub mass: f32,             // in stellar masses
+    pub name: String,
 }
 
 // Ref
 // - https://exoplanetarchive.ipac.caltech.edu/docs/poet_calculations.html
 
-
 impl Star {
     fn system_radius_au(&self) -> f32 {
         7.0
     }
-    pub fn system_radius_actual(&self) -> f32{
+    pub fn system_radius_actual(&self) -> f32 {
         self.system_radius_au() * GalaxyConfig::AU_SCALE
     }
 
-    pub fn new(star_name_gen : &mut crate::generators::markov_chain::StarNameGenerator, id : u32, pos : Vec3, stellar_masses : f32) -> Star {
+    pub fn new(
+        star_name_gen: &mut crate::generators::markov_chain::StarNameGenerator,
+        id: u32,
+        pos: Vec3,
+        stellar_masses: f32,
+    ) -> Star {
         Star {
-            node_id : id,
+            node_id: id,
             pos,
-            orbiters : Vec::new(),
-            mass : stellar_masses,
-            name : star_name_gen.next()
+            orbiters: Vec::new(),
+            mass: stellar_masses,
+            name: star_name_gen.next(),
         }
     }
 
@@ -42,7 +46,7 @@ impl Star {
         // return as fraction of Sun mass
         self.mass.sqrt()
     }
-    
+
     pub fn get_scaled_radius(&self) -> f32 {
         // return as fraction of Sun radius
         self.get_raw_radius() * GalaxyConfig::SOLAR_RADIUS
@@ -60,30 +64,36 @@ impl Star {
 
     // insolation per unit area, in Earth units
     // Distance is Au
-    pub fn get_insolation(&self, distance_au : f32) -> f32 {
+    pub fn get_insolation(&self, distance_au: f32) -> f32 {
         self.get_luminosity() / (distance_au * distance_au)
     }
 
-    pub fn random_star_mass(rng : &mut ThreadRng) -> f32 {
+    pub fn random_star_mass(rng: &mut ThreadRng) -> f32 {
         let in_ranges = [
-            (0.08   ..0.45,    0.5), // M (Red Dwarf)
-            (0.45   ..0.8,     1.),// K
-            (0.8    ..1.04,    1.), // G (Sol range)
-            (1.04   ..1.4,     1.), // F
-            (1.4    ..2.1,     1.), // A
-            (2.1    ..16.,     0.2), // B
-            (16.    ..152.,    0.1), // O
+            (0.08..0.45, 0.5), // M (Red Dwarf)
+            (0.45..0.8, 1.),   // K
+            (0.8..1.04, 1.),   // G (Sol range)
+            (1.04..1.4, 1.),   // F
+            (1.4..2.1, 1.),    // A
+            (2.1..16., 0.2),   // B
+            (16. ..152., 0.1), // O
         ];
-        let range = in_ranges.choose_weighted(rng, |item| item.1).unwrap().0.clone();
+        let range = in_ranges
+            .choose_weighted(rng, |item| item.1)
+            .unwrap()
+            .0
+            .clone();
         rng.gen_range(range)
     }
 
-    fn simple_planck(temperature : f32) -> Vec3 {
-        let mut res : Vec3 = Vec3::ZERO;
+    fn simple_planck(temperature: f32) -> Vec3 {
+        let mut res: Vec3 = Vec3::ZERO;
         let m = 1.0;
-        for i in 0..3 {  // +=.1 if you want to better sample the spectrum.
-            let f = 1.+0.5*i as f32; 
-            res[i as usize] += 10.0 / m * (f*f*f) / (f32::exp(19.0e3*f/temperature) - 1.);  // Planck law
+        for i in 0..3 {
+            // +=.1 if you want to better sample the spectrum.
+            let f = 1. + 0.5 * i as f32;
+            res[i as usize] += 10.0 / m * (f * f * f) / (f32::exp(19.0e3 * f / temperature) - 1.);
+            // Planck law
         }
 
         //res = res / res.max_element();

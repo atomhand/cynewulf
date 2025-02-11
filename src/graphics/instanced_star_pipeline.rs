@@ -10,17 +10,19 @@ use bevy::{
     },
     render::{
         extract_component::{ExtractComponent, ExtractComponentPlugin},
-        mesh::{allocator::MeshAllocator,RenderMesh,MeshVertexBufferLayoutRef,RenderMeshBufferInfo},
+        mesh::{
+            allocator::MeshAllocator, MeshVertexBufferLayoutRef, RenderMesh, RenderMeshBufferInfo,
+        },
         render_asset::RenderAssets,
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
             RenderCommandResult, SetItemPipeline, TrackedRenderPass, ViewSortedRenderPhases,
         },
-        render_resource::{*,binding_types::uniform_buffer},
-        renderer::{RenderDevice,RenderQueue},
+        render_resource::{binding_types::uniform_buffer, *},
+        renderer::{RenderDevice, RenderQueue},
+        sync_world::MainEntity,
         view::ExtractedView,
         Render, RenderApp, RenderSet,
-        sync_world::MainEntity
     },
 };
 use bytemuck::{Pod, Zeroable};
@@ -29,10 +31,10 @@ pub struct StarMaterialPlugin;
 
 impl Plugin for StarMaterialPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(
-            (ExtractComponentPlugin::<StarInstanceMaterialData>::default(),
-            ExtractComponentPlugin::<crate::camera::CameraMain>::default())        
-        );
+        app.add_plugins((
+            ExtractComponentPlugin::<StarInstanceMaterialData>::default(),
+            ExtractComponentPlugin::<crate::camera::CameraMain>::default(),
+        ));
         app.sub_app_mut(RenderApp)
             .add_render_command::<Transparent3d, DrawStar>()
             .init_resource::<SpecializedMeshPipelines<StarPipeline>>()
@@ -47,7 +49,8 @@ impl Plugin for StarMaterialPlugin {
     }
 
     fn finish(&self, app: &mut App) {
-        app.sub_app_mut(RenderApp).init_resource::<StarPipeline>()
+        app.sub_app_mut(RenderApp)
+            .init_resource::<StarPipeline>()
             .init_resource::<StarUniformsData>();
     }
 }
@@ -60,16 +63,16 @@ impl ExtractComponent for StarInstanceMaterialData {
     type QueryFilter = ();
     type Out = Self;
 
-    fn extract_component(item: QueryItem<'_,Self::QueryData>) -> Option<Self> {
+    fn extract_component(item: QueryItem<'_, Self::QueryData>) -> Option<Self> {
         Some(StarInstanceMaterialData(item.0.clone()))
     }
 }
 
-#[derive(Clone,Copy,Pod,Zeroable)]
+#[derive(Clone, Copy, Pod, Zeroable)]
 #[repr(C)]
 pub struct StarInstanceData {
-    pub position : Vec3,
-    pub star_radius : f32,
+    pub position: Vec3,
+    pub star_radius: f32,
     pub color: [f32; 4],
 }
 
@@ -100,7 +103,8 @@ fn queue_custom(
 
         let rangefinder = view.rangefinder3d();
         for (entity, main_entity) in &material_meshes {
-            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity) else {
+            let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*main_entity)
+            else {
                 continue;
             };
             let Some(mesh) = meshes.get(mesh_instance.mesh_asset_id) else {
@@ -114,7 +118,7 @@ fn queue_custom(
                 .specialize(&pipeline_cache, &star_pipeline, key, &mesh.layout)
                 .unwrap();
             transparent_phase.add(Transparent3d {
-                entity : (entity, *main_entity),
+                entity: (entity, *main_entity),
                 pipeline,
                 draw_function: draw_star,
                 distance: rangefinder.distance_translation(&mesh_instance.translation),
@@ -128,7 +132,7 @@ fn queue_custom(
 #[derive(Component)]
 struct InstanceBuffer {
     buffer: Buffer,
-    length: usize
+    length: usize,
 }
 
 // Put the instance buffer data on the GPU
@@ -142,7 +146,7 @@ fn prepare_instance_buffers(
         let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: Some("instance data buffer"),
             contents: bytemuck::cast_slice(instance_data.as_slice()),
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
         });
         commands.entity(entity).insert(InstanceBuffer {
             buffer,
@@ -153,9 +157,9 @@ fn prepare_instance_buffers(
 
 #[derive(Resource)]
 struct StarPipeline {
-    shader : Handle<Shader>,
+    shader: Handle<Shader>,
     mesh_pipeline: MeshPipeline,
-    uniforms_layout: BindGroupLayout
+    uniforms_layout: BindGroupLayout,
 }
 
 #[derive(Component, Default, Clone, Copy, ShaderType)]
@@ -174,15 +178,15 @@ impl FromWorld for StarPipeline {
         let layout = render_device.create_bind_group_layout(
             "star_instancing_bind_group_layout",
             &BindGroupLayoutEntries::single(
-                ShaderStages::VERTEX | ShaderStages::FRAGMENT,                
+                ShaderStages::VERTEX | ShaderStages::FRAGMENT,
                 uniform_buffer::<StarInstancingUniforms>(true),
             ),
         );
 
         StarPipeline {
-            shader : world.load_asset("shaders/star_instancing.wgsl"),
+            shader: world.load_asset("shaders/star_instancing.wgsl"),
             mesh_pipeline: mesh_pipeline.clone(),
-            uniforms_layout: layout
+            uniforms_layout: layout,
         }
     }
 }
@@ -213,7 +217,7 @@ impl SpecializedMeshPipeline for StarPipeline {
                 VertexAttribute {
                     format: VertexFormat::Float32x4,
                     offset: VertexFormat::Float32x4.size(),
-                    shader_location: 4
+                    shader_location: 4,
                 },
             ],
         });
@@ -232,42 +236,44 @@ type DrawStar = (
 
 #[derive(Resource)]
 struct StarUniformsData {
-    uniform_buffer : UniformBuffer<StarInstancingUniforms>,
-    bind_group : Option<BindGroup>
+    uniform_buffer: UniformBuffer<StarInstancingUniforms>,
+    bind_group: Option<BindGroup>,
 }
 
 impl FromWorld for StarUniformsData {
-    fn from_world(_world : &mut World) -> Self {
+    fn from_world(_world: &mut World) -> Self {
         Self {
-            uniform_buffer : UniformBuffer::from(StarInstancingUniforms { system_transition_factor : 0.}),
-            bind_group : None
+            uniform_buffer: UniformBuffer::from(StarInstancingUniforms {
+                system_transition_factor: 0.,
+            }),
+            bind_group: None,
         }
     }
 }
 
 fn prepare_star_uniform_bind_groups(
     //mut commands : Commands,
-    device : Res<RenderDevice>,
-    queue : Res<RenderQueue>,
-    star_pipeline : Res<StarPipeline>,
-    mut uniforms_data : ResMut<StarUniformsData>,
+    device: Res<RenderDevice>,
+    queue: Res<RenderQueue>,
+    star_pipeline: Res<StarPipeline>,
+    mut uniforms_data: ResMut<StarUniformsData>,
     cam_query: Query<&crate::camera::CameraMain>,
 ) {
     let cam = cam_query.get_single().expect("couldn't find camera!");
 
     uniforms_data.uniform_buffer.set(StarInstancingUniforms {
-        system_transition_factor : cam.adjusted_mode_transition(),
+        system_transition_factor: cam.adjusted_mode_transition(),
     });
     uniforms_data.uniform_buffer.write_buffer(&device, &queue);
 
-    let Some(uniform_buffer_binding) = uniforms_data.uniform_buffer.binding() else {return; };
+    let Some(uniform_buffer_binding) = uniforms_data.uniform_buffer.binding() else {
+        return;
+    };
 
     uniforms_data.bind_group = Some(device.create_bind_group(
         "star_instancing_bind_group",
         &star_pipeline.uniforms_layout,
-        &BindGroupEntries::single(
-            uniform_buffer_binding
-        ),
+        &BindGroupEntries::single(uniform_buffer_binding),
     ));
 }
 
@@ -282,7 +288,7 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetStarUniformsBindGroup
         _view: (),
         _: Option<()>,
         bindgroup: SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut TrackedRenderPass<'w>
+        pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let bindgroup = bindgroup.into_inner();
         let Some(bindgroup) = &bindgroup.bind_group else {
@@ -296,7 +302,11 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetStarUniformsBindGroup
 struct DrawMeshInstanced;
 // PRETTY MUCH JUST BOILERPLATE
 impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
-    type  Param = (SRes<RenderAssets<RenderMesh>>, SRes<RenderMeshInstances>, SRes<MeshAllocator>);
+    type Param = (
+        SRes<RenderAssets<RenderMesh>>,
+        SRes<RenderMeshInstances>,
+        SRes<MeshAllocator>,
+    );
     type ViewQuery = ();
     type ItemQuery = Read<InstanceBuffer>;
 
@@ -305,11 +315,11 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         item: &P,
         _view: (),
         instance_buffer: Option<&'w InstanceBuffer>,
-        (meshes,render_mesh_instances, mesh_allocator): SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut TrackedRenderPass<'w>
+        (meshes, render_mesh_instances, mesh_allocator): SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let mesh_allocator = mesh_allocator.into_inner();
-        
+
         let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(item.main_entity())
         else {
             return RenderCommandResult::Skip;
@@ -320,10 +330,11 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
         let Some(instance_buffer) = instance_buffer else {
             return RenderCommandResult::Skip;
         };
-        let Some(vertex_buffer_slice) = mesh_allocator.mesh_vertex_slice(&mesh_instance.mesh_asset_id) else {
+        let Some(vertex_buffer_slice) =
+            mesh_allocator.mesh_vertex_slice(&mesh_instance.mesh_asset_id)
+        else {
             return RenderCommandResult::Skip;
         };
-
 
         pass.set_vertex_buffer(0, vertex_buffer_slice.buffer.slice(..));
         pass.set_vertex_buffer(1, instance_buffer.buffer.slice(..));
@@ -333,15 +344,17 @@ impl<P: PhaseItem> RenderCommand<P> for DrawMeshInstanced {
                 index_format,
                 count,
             } => {
-                let Some(index_buffer_slice) = mesh_allocator.mesh_index_slice(&mesh_instance.mesh_asset_id) else {
+                let Some(index_buffer_slice) =
+                    mesh_allocator.mesh_index_slice(&mesh_instance.mesh_asset_id)
+                else {
                     return RenderCommandResult::Skip;
                 };
 
-                pass.set_index_buffer(index_buffer_slice.buffer.slice(..),0, *index_format);
+                pass.set_index_buffer(index_buffer_slice.buffer.slice(..), 0, *index_format);
                 pass.draw_indexed(
-                    index_buffer_slice.range.start..(index_buffer_slice.range.start + count), 
+                    index_buffer_slice.range.start..(index_buffer_slice.range.start + count),
                     vertex_buffer_slice.range.start as i32,
-                     0..instance_buffer.length as u32
+                    0..instance_buffer.length as u32,
                 );
             }
             RenderMeshBufferInfo::NonIndexed => {

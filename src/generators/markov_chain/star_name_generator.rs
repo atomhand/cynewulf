@@ -1,8 +1,8 @@
 use super::MarkovChainModel;
 use std::collections::HashSet;
 pub struct StarNameGenerator {
-    markov : MarkovChainModel,
-    used_names : HashSet<String>
+    markov: MarkovChainModel,
+    used_names: HashSet<String>,
 }
 
 impl StarNameGenerator {
@@ -27,7 +27,6 @@ impl StarNameGenerator {
         //"Austrinus",
         "Akaiwa",
         "Artemesia",
-
         "Barrion",
         "Belhammond",
         "Berria",
@@ -37,7 +36,6 @@ impl StarNameGenerator {
         "Ba'al",
         "Boron",
         "Bizen",
-
         // DISABLED CUZ GENERATOR MOSTLY JUST REPLICATES IT WHOLESALE
         //"Cassiopeia",
         "Cetus",
@@ -45,7 +43,6 @@ impl StarNameGenerator {
         "Canes",
         //"Canes Venatici",
         "Carina",
-        
         // DISABLED CUZ GENERATOR MOSTLY JUST REPLICATES IT WHOLESALE
         // "Centaurus",
         "Cepheus",
@@ -60,7 +57,6 @@ impl StarNameGenerator {
         "Cygnus",
         "Cygnon",
         "Chugoku",
-
         "Daedlus",
         "Delrune",
         "Dendra",
@@ -74,7 +70,6 @@ impl StarNameGenerator {
         "Dryad",
         "Dyad",
         "Dsiban",
-
         "Ea",
         "Eidre",
         "Elisande",
@@ -88,7 +83,6 @@ impl StarNameGenerator {
         "Ezor",
         "Eridani",
         "Ebih",
-
         "Fallia",
         "Fand",
         "Feylan",
@@ -102,7 +96,6 @@ impl StarNameGenerator {
         "Furan",
         "Furiosa",
         "Furyx",
-
         "Ganon",
         "Gail",
         "Geisand",
@@ -117,7 +110,6 @@ impl StarNameGenerator {
         "Gumala",
         "Gydaron",
         "Gyron",
-
         "Hattusa",
         "Hassuna",
         "Hadar",
@@ -130,7 +122,6 @@ impl StarNameGenerator {
         "Hylix",
         "Hund",
         "Hunor",
-
         "Iklil",
         "Indus",
         "Irena",
@@ -141,14 +132,12 @@ impl StarNameGenerator {
         "Ishtar",
         "Inanna",
         "Ilabrat",
-
         "Jabbah",
         "Jalar",
         "Jeyan",
         "Jerush",
         "Jishui",
         "Joshan",
-
         "Kaewkosin",
         "Kalausi",
         "Kamuy",
@@ -164,7 +153,6 @@ impl StarNameGenerator {
         "Kurhah",
         "Kur",
         "Kurashiki",
-
         "Landrig",
         "Lantion",
         "Landuhar",
@@ -179,7 +167,6 @@ impl StarNameGenerator {
         "Lutris",
         "Lycilin",
         "Lyncis",
-
         "Maasaym",
         "Macondo",
         "Marfik",
@@ -196,7 +183,6 @@ impl StarNameGenerator {
         "Mouhoun",
         "Mpingo",
         "Muscida",
-
         "Nahn",
         "Nalbus",
         "Naledi",
@@ -217,7 +203,6 @@ impl StarNameGenerator {
         "Ninshubur",
         "Nergal",
         "Nippur",
-
         "Oan",
         "Ogma",
         "Okab",
@@ -228,7 +213,6 @@ impl StarNameGenerator {
         "Orkaria",
         "Oryx",
         "Okayama",
-
         "Parumleo",
         "Petra",
         "Peylus",
@@ -249,7 +233,6 @@ impl StarNameGenerator {
         "Procyon",
         "Propus",
         "Proxam",
-
         "Ran",
         "Rasalas",
         "Rasalgethi",
@@ -263,7 +246,6 @@ impl StarNameGenerator {
         "Rotanev",
         "Ruchbah",
         "Rukbat",
-
         "Sabik",
         "Saclateni",
         "Sadachbia",
@@ -293,7 +275,6 @@ impl StarNameGenerator {
         "Sulafat",
         "Syrma",
         "Shaowei",
-
         "Tabit",
         "Taika",
         "Taiyangshou",
@@ -320,7 +301,6 @@ impl StarNameGenerator {
         "Tucana",
         "Tuiren",
         "Tureis",
-        
         "Uabb",
         "Uhlan",
         "Uht",
@@ -336,7 +316,6 @@ impl StarNameGenerator {
         "Uten",
         "Uuba",
         "Ube",
-
         "Vega",
         "Veylan",
         "Vindemiatrix",
@@ -344,7 +323,6 @@ impl StarNameGenerator {
         "Virgo",
         "Voss",
         "Vox",
-
         "Waiping",
         "Wasat",
         "Walhannis",
@@ -357,7 +335,6 @@ impl StarNameGenerator {
         "Wurren",
         "Weyr",
         "Wir",
-
         "Xamidimura",
         "Xerant",
         "Xeyhab",
@@ -365,7 +342,6 @@ impl StarNameGenerator {
         "Xo",
         "Xoss",
         "Xuange",
-
         "Yang",
         "Yanda",
         "Yantris",
@@ -377,7 +353,6 @@ impl StarNameGenerator {
         "Yoss",
         "Yorian",
         "Yoht",
-
         "Zaniah",
         "Zass",
         "Zaurak",
@@ -393,7 +368,7 @@ impl StarNameGenerator {
 
     pub fn new() -> Self {
         let mut markov = MarkovChainModel::new(3);
-        let mut used_names : HashSet<String> = HashSet::new();
+        let mut used_names: HashSet<String> = HashSet::new();
         let mut names = Vec::<String>::new();
         for starname in Self::SOURCE_NAMES {
             names.push(starname.to_string());
@@ -401,14 +376,11 @@ impl StarNameGenerator {
         }
         markov.build(&names, 0.00001);
 
-        Self {
-            markov,
-            used_names
-        }
+        Self { markov, used_names }
     }
 
     pub fn next(&mut self) -> String {
-        let mut res : String = self.markov.generate();
+        let mut res: String = self.markov.generate();
 
         while res.len() > 15 || self.used_names.contains(&res) {
             res = self.markov.generate();

@@ -5,10 +5,10 @@ mod galaxy;
 mod graphics;
 mod simulation;
 //mod interface;
-mod prelude;
-mod util;
 mod generators;
 mod interface_new;
+mod prelude;
+mod util;
 
 use std::env;
 
@@ -17,7 +17,7 @@ fn main() {
 
     App::new()
         .add_plugins((
-            DefaultPlugins.set(WindowPlugin{
+            DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Cynewulf".into(),
                     name: Some("bevy.app".into()),
@@ -37,7 +37,7 @@ fn main() {
             interface_new::InterfacePlugin,
             //interface::InterfacePlugin,
             camera::CameraPlugin,
-            generators::GalaxyGenerationPlugin
+            generators::GalaxyGenerationPlugin,
         ))
         .run();
 }

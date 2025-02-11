@@ -1,14 +1,12 @@
-use bevy::prelude::*;
 use crate::prelude::*;
-
-
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct Colony {
-    pub owner : Entity,
-    pub claimed_tick : i64,
-    pub population : Population,
-    pub economy : Economy
+    pub owner: Entity,
+    pub claimed_tick: i64,
+    pub population: Population,
+    pub economy: Economy,
 }
 
 impl Colony {
@@ -22,9 +20,8 @@ impl Colony {
     }
 }
 
-
 #[derive(Component)]
 pub struct StarClaim {
-    pub owner : Option<Entity>,
-    pub claimed_tick : i64
+    pub owner: Option<Entity>,
+    pub claimed_tick: i64,
 }

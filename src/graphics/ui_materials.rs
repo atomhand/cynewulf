@@ -1,21 +1,20 @@
 use bevy::{
     prelude::*,
-    render::render_resource::{AsBindGroup, ShaderRef}
+    render::render_resource::{AsBindGroup, ShaderRef},
 };
 
 pub struct UiMaterialsPlugin;
 
 impl Plugin for UiMaterialsPlugin {
-    fn build(&self, app : &mut App) {
+    fn build(&self, app: &mut App) {
         app.add_plugins(UiMaterialPlugin::<StarIconMaterial>::default());
     }
 }
 
-
 #[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
 pub struct StarIconMaterial {
     #[uniform(0)]
-    pub color : Vec4,
+    pub color: Vec4,
     //#[uniform(1)]
     //pub radius : f32,
 }

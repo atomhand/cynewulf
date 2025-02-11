@@ -1,3 +1,3 @@
 pub mod colony;
-pub mod planet;
 pub mod economy;
+pub mod planet;
