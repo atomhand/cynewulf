@@ -132,53 +132,53 @@ impl Economy {
 
 impl fmt::Display for Economy {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Output: \n")?;
-        write!(
+        writeln!(f, "Output: ")?;
+        writeln!(
             f,
-            "   Light:    {} \n",
+            "   Light:    {} ",
             self.light_output.format_big_number()
         )?;
-        write!(
+        writeln!(
             f,
-            "   Heavy:    {} \n",
+            "   Heavy:    {} ",
             self.heavy_output.format_big_number()
         )?;
-        write!(
+        writeln!(
             f,
-            "   Advanced: {} \n",
+            "   Advanced: {} ",
             self.advanced_output.format_big_number()
         )?;
 
-        write!(f, "Infrastructure: \n")?;
-        write!(
+        writeln!(f, "Infrastructure: ")?;
+        writeln!(
             f,
-            "   Light:    {:<8} (+{}) \n",
+            "   Light:    {:<8} (+{}) ",
             self.light_infra.format_big_number(),
             self.light_growth.format_big_number()
         )?;
-        write!(
+        writeln!(
             f,
-            "   Heavy:    {:<8} (+{}) \n",
+            "   Heavy:    {:<8} (+{}) ",
             self.heavy_infra.format_big_number(),
             self.heavy_growth.format_big_number()
         )?;
-        write!(
+        writeln!(
             f,
-            "   Advanced: {:<8} (+{}) \n",
+            "   Advanced: {:<8} (+{}) ",
             self.advanced_infra.format_big_number(),
             self.advanced_growth.format_big_number()
         )?;
 
-        write!(f, "\nDepreciation Rate:{} \n", self.infra_depreciation_rate)?;
-        write!(f, "Savings Rate:  {} \n", self.savings_rate)?;
-        write!(
+        writeln!(f, "\nDepreciation Rate:{} ", self.infra_depreciation_rate)?;
+        writeln!(f, "Savings Rate:  {} ", self.savings_rate)?;
+        writeln!(
             f,
-            "Basic Workers: {} \n",
+            "Basic Workers: {} ",
             self.basic_workers.format_big_number()
         )?;
-        write!(
+        writeln!(
             f,
-            "Engineers:     {:<8} (+{}) \n",
+            "Engineers:     {:<8} (+{}) ",
             self.advanced_workers.format_big_number(),
             self.engineer_growth.format_big_number()
         )

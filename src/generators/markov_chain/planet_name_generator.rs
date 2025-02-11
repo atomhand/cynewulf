@@ -4,14 +4,8 @@ use std::collections::HashSet;
 
 // Each empire has its own separately configured name generator. (but the list of exhausted names is shared across everyone)
 
-#[derive(Resource)]
+#[derive(Resource,Default)]
 pub struct UsedPlanetNames(HashSet<String>);
-
-impl Default for UsedPlanetNames {
-    fn default() -> Self {
-        Self(HashSet::new())
-    }
-}
 
 pub struct PlanetNameGenerator {
     markov: MarkovChainModel,
@@ -207,7 +201,7 @@ impl PlanetNameGenerator {
         let mut rng = rand::rng();
 
         let ascii_only = Self::SOURCE_NAMES
-            .into_iter()
+            .iter()
             .filter(|x| x.is_ascii())
             .collect::<Vec<_>>();
 
@@ -222,7 +216,7 @@ impl PlanetNameGenerator {
         let with_skipped = subset
             .iter()
             .filter_map(|x| {
-                if x.chars().next() != Some(letter_to_skip) {
+                if !x.starts_with(letter_to_skip) {
                     Some(x.clone())
                 } else {
                     None

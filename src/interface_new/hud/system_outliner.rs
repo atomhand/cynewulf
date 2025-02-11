@@ -74,13 +74,13 @@ fn setup_widget(mut commands: Commands) {
                             height: Val::Auto,
                             ..Default::default()
                         },
-                        BackgroundColor(Color::srgb(0.0, 0.0, 0.0).into()),
+                        BackgroundColor(Color::srgb(0.0, 0.0, 0.0)),
                         GlobalZIndex(i32::MAX),
                     ))
                     .with_children(|parent| {
                         parent.spawn((
                             SelectionPanelTabHeader { slot: i as i32 },
-                            BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.2).into()),
+                            BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.2)),
                             Text("Header text".to_string()),
                             PickingBehavior {
                                 should_block_lower: false,
@@ -89,7 +89,7 @@ fn setup_widget(mut commands: Commands) {
                         ));
                         parent.spawn((
                             SelectionPanelTabDetails { slot: i as i32 },
-                            BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.75).into()),
+                            BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.75)),
                             Text("Tab details text".to_string()),
                             PickingBehavior {
                                 should_block_lower: false,
@@ -138,16 +138,14 @@ fn update_widget_system(
         for (mut text, panel) in header_query.iter_mut() {
             if panel.slot < len {
                 let mut t_name = desc[panel.slot as usize].type_name().to_string();
-                if let Ok((_planet, colony)) =
+                if let Ok((_planet, Some(colony))) =
                     planet_colony_query.get(star_and_orbiters[panel.slot as usize])
                 {
-                    if let Some(colony) = colony {
-                        t_name = format!(
-                            "({}, {})",
-                            colony.population.to_string(),
-                            desc[panel.slot as usize].type_name()
-                        );
-                    }
+                    t_name = format!(
+                        "({}, {})",
+                        colony.population.to_string(),
+                        desc[panel.slot as usize].type_name()
+                    );
                 }
                 *text = Text(format!("{} ({})", desc[panel.slot as usize].name, t_name));
             }

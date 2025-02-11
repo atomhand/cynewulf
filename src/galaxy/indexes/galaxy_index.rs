@@ -24,7 +24,7 @@ pub struct PlanetsIterator<'a> {
     next: Option<u32>,
 }
 
-impl<'a> Iterator for PlanetsIterator<'a> {
+impl Iterator for PlanetsIterator<'_> {
     type Item = PlanetHandle;
 
     fn next(&mut self) -> Option<Self::Item> {

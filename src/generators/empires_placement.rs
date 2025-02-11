@@ -74,7 +74,7 @@ pub fn place_star_empires(
 
                 // ~~ temp
                 // give the player an empire
-                if player_empire.empire == None {
+                if player_empire.empire.is_none() {
                     player_empire.empire = Some(new_empire);
                 }
 

@@ -52,7 +52,7 @@ pub struct NavigationFilter<'a> {
     mask: &'a NavigationMask,
 }
 
-impl<'a> NavigationFilter<'a> {
+impl NavigationFilter<'_> {
     fn is_passable(&self, index: usize) -> bool {
         self.mask.passable_systems_mask[index]
     }
@@ -76,7 +76,7 @@ impl PartialEq for DijkstraNode {
 }
 impl PartialOrd for DijkstraNode {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.score().partial_cmp(&other.score())
+        Some(self.cmp(other))
     }
 }
 
@@ -122,7 +122,7 @@ impl PartialEq for PathfindingNode {
 }
 impl PartialOrd for PathfindingNode {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.score().partial_cmp(&other.score())
+        Some(self.cmp(other))
     }
 }
 
@@ -132,7 +132,7 @@ impl Ord for PathfindingNode {
     }
 }
 
-impl<'a> Pathfinding for NavigationFilter<'a> {
+impl Pathfinding for NavigationFilter<'_> {
     fn find_path_without_direct_edge(&self, star_a: u32, star_b: u32) -> Option<Path> {
         if star_a == star_b {
             return Some(Path {
@@ -183,7 +183,7 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
                         n.index() as u32,
                         &top,
                         dest_pos,
-                        &self.hypernet,
+                        self.hypernet,
                     ));
                 }
             }
@@ -260,7 +260,7 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
                         n.index() as u32,
                         &top,
                         dest_pos,
-                        &self.hypernet,
+                        self.hypernet,
                     ));
                 }
             }
@@ -291,7 +291,7 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
         }
     }
 
-    fn find_path_multi_source(&self, sources: &Vec<u32>, star_b: u32) -> Option<Path> {
+    fn find_path_multi_source(&self, sources: &[u32], star_b: u32) -> Option<Path> {
         let sources_set: std::collections::HashSet<u32> =
             std::collections::HashSet::from_iter(sources.iter().cloned());
         if sources_set.contains(&star_b) {
@@ -343,7 +343,7 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
                         n.index() as u32,
                         &top,
                         dest_pos,
-                        &self.hypernet,
+                        self.hypernet,
                     ));
                 }
             }
@@ -375,7 +375,7 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
     }
     ///
     /// Returns vec of distances corresponding to hypernet node ids
-    fn dijkstra(&self, input_points: &Vec<u32>) -> Vec<Option<i32>> {
+    fn dijkstra(&self, input_points: &[u32]) -> Vec<Option<i32>> {
         let (n, _) = self.hypernet.graph.capacity();
         let mut open = BinaryHeap::new();
         let mut result = vec![None; n];
@@ -390,7 +390,7 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
                 if !self.is_passable(n.index()) {
                     continue;
                 }
-                if result[n.index()] == None {
+                if result[n.index()].is_none() {
                     let e = self
                         .hypernet
                         .graph
@@ -405,6 +405,6 @@ impl<'a> Pathfinding for NavigationFilter<'a> {
             }
         }
 
-        return result;
+        result
     }
 }

@@ -58,7 +58,7 @@ pub fn update_planet_materials(
 
         let empire_col = colony
             .and_then(|x| empire_query.get(x.owner).ok())
-            .and_then(|x| Some(x.color))
+            .map(|x| x.color)
             .unwrap_or(Color::srgb(0.6, 0.6, 0.6));
 
         mat.halo_color = if Some(*orbiter) == selection.hovered {

@@ -148,11 +148,10 @@ pub fn camera_control_system(
             cam.viewport_to_world(&GlobalTransform::from(*transform), cursor)
                 .ok()
         })
-        .map(|ray| {
+        .and_then(|ray| {
             ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y))
                 .map(|distance| ray.get_point(distance))
-        })
-        .flatten();
+        });
 
     let mut key_delta = Vec3::ZERO;
 
@@ -184,7 +183,7 @@ pub fn camera_control_system(
             for ev in scroll_evr.read() {
                 wheel_ev = wheel_ev.min(ev.y);
             }
-            if wheel_ev < 0.0 || selection.zoomed_system == None {
+            if wheel_ev < 0.0 || selection.zoomed_system.is_none() {
                 camera_settings.camera_mode = CameraMode::Galaxy;
                 camera_settings.visibility_updated = false;
                 camera_main.target_pos = camera_main.star_pos;
@@ -267,11 +266,10 @@ pub fn camera_control_system(
                 cam.viewport_to_world(&GlobalTransform::from(*transform), cursor)
                     .ok()
             })
-            .map(|ray| {
+            .and_then(|ray| {
                 ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y))
                     .map(|distance| ray.get_point(distance))
             })
-            .flatten()
         else {
             return;
         };

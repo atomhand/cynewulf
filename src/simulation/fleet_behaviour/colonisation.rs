@@ -15,7 +15,7 @@ pub fn nav_update_task_system(
         let Action::Idle = nav.action else {
             continue;
         };
-        if nav.plan_queue.len() > 0 {
+        if !nav.plan_queue.is_empty() {
             continue;
         }
 
@@ -76,8 +76,8 @@ pub fn nav_find_colony_target_system(
 
             let dijkstra = nav_filter.dijkstra(&vec![nav_pos.root_system]);
 
-            for star_id in 0..dijkstra.len() {
-                let Some(d) = dijkstra[star_id] else {
+            for (star_id,d_o) in dijkstra.iter().enumerate() {
+                let Some(d) = d_o else {
                     continue;
                 };
 
@@ -86,7 +86,7 @@ pub fn nav_find_colony_target_system(
                     continue;
                 };
 
-                if starclaim.owner != None && starclaim.owner != Some(empire) {
+                if starclaim.owner.is_some() && starclaim.owner != Some(empire) {
                     continue;
                 }
 

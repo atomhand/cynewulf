@@ -5,9 +5,9 @@ pub trait FormatNumber {
 impl FormatNumber for i64 {
     fn format_big_number(&self) -> String {
         if *self < 0 {
-            format!("-{}", (self.abs() as u64).format_big_number())
+            format!("-{}", (self.unsigned_abs()).format_big_number())
         } else {
-            (self.abs() as u64).format_big_number()
+            (self.unsigned_abs()).format_big_number()
         }
     }
 }

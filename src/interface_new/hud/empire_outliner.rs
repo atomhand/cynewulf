@@ -75,20 +75,20 @@ fn setup_widget(mut commands: Commands, mut materials: ResMut<Assets<StarIconMat
                         height: Val::Auto,
                         ..Default::default()
                     },
-                    BackgroundColor(Color::srgb(1., 1., 1.).into()),
-                    BorderColor(Color::srgb(0.1, 0.1, 0.2).into()),
+                    BackgroundColor(Color::srgb(1., 1., 1.)),
+                    BorderColor(Color::srgb(0.1, 0.1, 0.2)),
                     GlobalZIndex(i32::MAX - 1),
                 ))
                 .with_children(|parent| {
                     parent.spawn((
                         Text("IMPERIAL SYSTEMS".to_string()),
-                        BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.5).into()),
+                        BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.5)),
                     ));
                 });
             for i in 0..100 {
                 parent
                     .spawn((
-                        SelectionPanelTabRoot { slot: i as i32 },
+                        SelectionPanelTabRoot { slot: i },
                         SelectionProxy::new(InterfaceIdentifier::EmpireStar(i as u32)),
                         Node {
                             flex_direction: FlexDirection::Row,
@@ -124,7 +124,7 @@ fn setup_widget(mut commands: Commands, mut materials: ResMut<Assets<StarIconMat
                         ));
                         parent.spawn((
                             SelectionPanelTabHeader {
-                                slot: i as i32,
+                                slot: i,
                                 material: mat,
                             },
                             Text("N/A".to_string()),
@@ -132,20 +132,20 @@ fn setup_widget(mut commands: Commands, mut materials: ResMut<Assets<StarIconMat
                                 font_size: super::UiConsts::STANDARD_UI_FONT_SIZE,
                                 ..default()
                             },
-                            BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.5).into()),
+                            BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.5)),
                             PickingBehavior {
                                 should_block_lower: false,
                                 is_hoverable: false,
                             },
                         ));
                         parent.spawn((
-                            SelectionPanelTabDetails { slot: i as i32 },
+                            SelectionPanelTabDetails { slot: i },
                             Text("N/A".to_string()),
                             TextFont {
                                 font_size: super::UiConsts::STANDARD_UI_FONT_SIZE,
                                 ..default()
                             },
-                            BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.5).into()),
+                            BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.5)),
                             PickingBehavior {
                                 should_block_lower: false,
                                 is_hoverable: false,

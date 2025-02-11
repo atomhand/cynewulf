@@ -83,7 +83,7 @@ impl Star {
             .unwrap()
             .0
             .clone();
-        rng.gen_range(range)
+        rng.random_range(range)
     }
 
     fn simple_planck(temperature: f32) -> Vec3 {
@@ -101,7 +101,6 @@ impl Star {
     }
 
     pub fn get_color(&self) -> Vec3 {
-        let planck = Self::simple_planck(self.get_temperature());
-        planck
+        Self::simple_planck(self.get_temperature())
     }
 }

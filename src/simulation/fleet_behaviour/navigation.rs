@@ -232,7 +232,7 @@ pub fn navigation_update_nav_system(
                         let dir = (dest - *offset).normalize_or_zero();
                         let dist = dest.distance(*offset);
                         let speed = nav.speed.min(dist);
-                        *offset = *offset + dir * speed;
+                        *offset += dir * speed;
 
                         // I Guess the action could fail here if the ship can't keep up with the planet?
                         // Not something that should ever actually happen though.
@@ -263,7 +263,7 @@ pub fn navigation_update_nav_system(
                     let dir = (dest - *offset).normalize_or_zero();
                     let dist = dest.distance(*offset);
                     let speed = nav.speed.min(dist);
-                    *offset = *offset + dir * speed;
+                    *offset += dir * speed;
 
                     if dist <= speed {
                         // reached destination, move is finished...
@@ -286,7 +286,7 @@ pub fn navigation_update_nav_system(
 
         let mut iter = 0;
         while let Action::Idle = nav.action {
-            assert!(if let NavOffset::Star(_) = nav_pos.offset { true } else {false }, "Navigation: It is invalid for a fleet to be marked Idle while in hyperlane transit!");
+            assert!(matches!(nav_pos.offset,NavOffset::Star(_)), "Navigation: It is invalid for a fleet to be marked Idle while in hyperlane transit!");
 
             // If there is no plan, we are idle.
             if nav.plan_queue.is_empty() {
@@ -375,7 +375,7 @@ pub fn navigation_update_nav_system(
                 Plan::ReachHomeEmpire => {
                     info!("Stranded, trying to get home!");
                     assert!(
-                        mask.owned_systems.len() > 0,
+                        !mask.owned_systems.is_empty(),
                         "fleet's owner owned systems mask cannot be empty"
                     );
                     if let Some(mut path) = blank_filter
@@ -416,43 +416,41 @@ pub fn navigation_update_nav_system(
                     if dest_system_id == nav_pos.root_system {
                         // We're already there, so we can consider this plan finished...
                         nav.plan_queue.pop();
-                    } else {
-                        if let Some(path) =
-                            nav_filter.find_path(nav_pos.root_system, dest_system_id)
-                        {
-                            assert!(
-                                nav_pos.root_system == path.nodes[0],
-                                "path[0] doesn't match path origin!"
-                            );
+                    } else if let Some(path) =
+                        nav_filter.find_path(nav_pos.root_system, dest_system_id)
+                    {
+                        assert!(
+                            nav_pos.root_system == path.nodes[0],
+                            "path[0] doesn't match path origin!"
+                        );
 
-                            if path.nodes.len() > 1 {
-                                let next_system = path.nodes[1];
-                                let next_system_node = hypernet.star(next_system);
-                                let root_system_node = hypernet.star(nav_pos.root_system);
-                                let (root_system_star, _) =
-                                    system_query.get(root_system_node.entity).unwrap();
-                                let (next_system_star, _) =
-                                    system_query.get(next_system_node.entity).unwrap();
+                        if path.nodes.len() > 1 {
+                            let next_system = path.nodes[1];
+                            let next_system_node = hypernet.star(next_system);
+                            let root_system_node = hypernet.star(nav_pos.root_system);
+                            let (root_system_star, _) =
+                                system_query.get(root_system_node.entity).unwrap();
+                            let (next_system_star, _) =
+                                system_query.get(next_system_node.entity).unwrap();
 
-                                nav.plan_queue.push(Plan::Jump(next_system));
-                                nav.plan_queue
-                                    .push(Plan::ReachPoint(hyperlane_transit_point(
-                                        root_system_star,
-                                        next_system_star.pos,
-                                    )));
-                            } else {
-                                // already there..
-                                nav.plan_queue.pop();
-                            }
+                            nav.plan_queue.push(Plan::Jump(next_system));
+                            nav.plan_queue
+                                .push(Plan::ReachPoint(hyperlane_transit_point(
+                                    root_system_star,
+                                    next_system_star.pos,
+                                )));
                         } else {
-                            // No valid path, so cancel it
-
-                            // .. This also needs to cancel all further queued plans under the current design
-                            // It may be desirable to adjust things so that after a failed plan we gracefully moves along the queue
-                            // .. or not. Kinda debatable situation
-                            info!("Navigation: ReachSystem plan couldn't find a path. Dropping navigation queue.");
-                            nav.plan_queue.clear();
+                            // already there..
+                            nav.plan_queue.pop();
                         }
+                    } else {
+                        // No valid path, so cancel it
+
+                        // .. This also needs to cancel all further queued plans under the current design
+                        // It may be desirable to adjust things so that after a failed plan we gracefully moves along the queue
+                        // .. or not. Kinda debatable situation
+                        info!("Navigation: ReachSystem plan couldn't find a path. Dropping navigation queue.");
+                        nav.plan_queue.clear();
                     }
                 }
             }

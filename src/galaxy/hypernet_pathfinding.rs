@@ -25,10 +25,10 @@ impl Path {
 pub trait Pathfinding {
     fn find_path_without_direct_edge(&self, a: u32, b: u32) -> Option<Path>;
 
-    fn find_path_multi_source(&self, sources: &Vec<u32>, b: u32) -> Option<Path>;
+    fn find_path_multi_source(&self, sources: &[u32], b: u32) -> Option<Path>;
     fn find_path(&self, a: u32, b: u32) -> Option<Path>;
 
-    fn dijkstra(&self, input_points: &Vec<u32>) -> Vec<Option<i32>>;
+    fn dijkstra(&self, input_points: &[u32]) -> Vec<Option<i32>>;
 }
 
 use std::cmp::Ordering;
@@ -49,7 +49,7 @@ impl PartialEq for DijkstraNode {
 }
 impl PartialOrd for DijkstraNode {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.score().partial_cmp(&other.score())
+        Some(self.cmp(other))
     }
 }
 
@@ -95,7 +95,7 @@ impl PartialEq for PathfindingNode {
 }
 impl PartialOrd for PathfindingNode {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.score().partial_cmp(&other.score())
+        Some(self.cmp(other))
     }
 }
 
@@ -152,7 +152,7 @@ impl Pathfinding for super::Hypernet {
                         n.index() as u32,
                         &top,
                         dest_pos,
-                        &self,
+                        self,
                     ));
                 }
             }
@@ -183,7 +183,7 @@ impl Pathfinding for super::Hypernet {
         }
     }
 
-    fn find_path_multi_source(&self, sources: &Vec<u32>, star_b: u32) -> Option<Path> {
+    fn find_path_multi_source(&self, sources: &[u32], star_b: u32) -> Option<Path> {
         let sources_set: std::collections::HashSet<u32> =
             std::collections::HashSet::from_iter(sources.iter().cloned());
         if sources_set.contains(&star_b) {
@@ -231,7 +231,7 @@ impl Pathfinding for super::Hypernet {
                         n.index() as u32,
                         &top,
                         dest_pos,
-                        &self,
+                        self,
                     ));
                 }
             }
@@ -332,7 +332,7 @@ impl Pathfinding for super::Hypernet {
     }
     ///
     /// Returns vec of distances corresponding to hypernet node ids
-    fn dijkstra(&self, input_points: &Vec<u32>) -> Vec<Option<i32>> {
+    fn dijkstra(&self, input_points: &[u32]) -> Vec<Option<i32>> {
         let (n, _) = self.graph.capacity();
         let mut open = BinaryHeap::new();
         let mut result = vec![None; n];
@@ -344,7 +344,7 @@ impl Pathfinding for super::Hypernet {
 
         while let Some(top) = open.pop() {
             for n in self.graph.neighbors(top.star.into()) {
-                if result[n.index()] == None {
+                if result[n.index()].is_none() {
                     let e = self
                         .graph
                         .edge_weight(self.graph.find_edge(top.star.into(), n).unwrap())
@@ -358,6 +358,6 @@ impl Pathfinding for super::Hypernet {
             }
         }
 
-        return result;
+        result
     }
 }

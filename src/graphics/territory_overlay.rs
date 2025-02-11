@@ -150,15 +150,15 @@ fn update_overlays(
 
             let empire_halo_col = claim
                 .owner
-                .and_then(|empire| Some(selection.get_selection_state(empire).as_colour()))
+                .map(|empire| selection.get_selection_state(empire).as_colour())
                 .unwrap_or(Color::NONE);
             let selection_halo = selection.get_selection_state(entity).as_colour();
 
-            overlays_data.star_data[tag.id as usize].system_halo =
+            overlays_data.star_data[tag.id].system_halo =
                 selection_halo.to_linear().to_vec4();
-            overlays_data.star_data[tag.id as usize].empire_halo =
+            overlays_data.star_data[tag.id].empire_halo =
                 empire_halo_col.to_linear().to_vec4();
-            overlays_data.star_data[tag.id as usize].color = col.to_vec4();
+            overlays_data.star_data[tag.id].color = col.to_vec4();
         }
     } else {
         for (entity, tag, claim) in &star_changed_update_query {
@@ -170,15 +170,15 @@ fn update_overlays(
 
             let empire_halo_col = claim
                 .owner
-                .and_then(|empire| Some(selection.get_selection_state(empire).as_colour()))
+                .map(|empire| selection.get_selection_state(empire).as_colour())
                 .unwrap_or(Color::NONE);
             let selection_halo = selection.get_selection_state(entity).as_colour();
 
-            overlays_data.star_data[tag.id as usize].system_halo =
+            overlays_data.star_data[tag.id].system_halo =
                 selection_halo.to_linear().to_vec4();
-            overlays_data.star_data[tag.id as usize].empire_halo =
+            overlays_data.star_data[tag.id].empire_halo =
                 empire_halo_col.to_linear().to_vec4();
-            overlays_data.star_data[tag.id as usize].color = col.to_vec4();
+            overlays_data.star_data[tag.id].color = col.to_vec4();
 
             any_change = true;
         }
@@ -282,17 +282,17 @@ fn generate_overlays_mesh(
             hypernet
                 .graph
                 .find_edge(c.x.into(), c.y.into())
-                .and_then(|x| Some(x.index() as u32))
+                .map(|x| x.index() as u32)
                 .unwrap_or(100000),
             hypernet
                 .graph
                 .find_edge(c.y.into(), c.z.into())
-                .and_then(|x| Some(x.index() as u32))
+                .map(|x| x.index() as u32)
                 .unwrap_or(100000),
             hypernet
                 .graph
                 .find_edge(c.x.into(), c.z.into())
-                .and_then(|x| Some(x.index() as u32))
+                .map(|x| x.index() as u32)
                 .unwrap_or(100000),
         );
 

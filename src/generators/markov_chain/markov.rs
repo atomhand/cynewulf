@@ -59,7 +59,7 @@ impl MarkovChainModel {
             order,
         }
     }
-    fn observe(&mut self, word: &String, prior: f32) {
+    fn observe(&mut self, word: &str, prior: f32) {
         let chars: Vec<char> = word.chars().collect();
         let mut sequence = Vec::<char>::with_capacity(chars.len() + 1 + self.order);
         for _i in 0..self.order {
@@ -75,7 +75,7 @@ impl MarkovChainModel {
             let event = sequence[i];
 
             for j in 0..context.len() {
-                let subcontext: String = context[j..context.len()].into_iter().collect();
+                let subcontext: String = context[j..context.len()].iter().collect();
                 if !self.counts.contains_key(&subcontext) {
                     self.counts
                         .insert(subcontext.clone(), ObservedCount::new(&self.support, prior));
@@ -102,7 +102,7 @@ impl MarkovChainModel {
         while !self
             .counts
             .contains_key(&context.iter().collect::<String>())
-            && context.len() > 0
+            && !context.is_empty()
         {
             context.remove(0);
         }
@@ -110,14 +110,14 @@ impl MarkovChainModel {
         context.iter().collect()
     }
 
-    fn sample(&self, seq: &Vec<char>) -> Option<char> {
+    fn sample(&self, seq: &[char]) -> Option<char> {
         let context = self.backoff(seq);
 
-        return self.counts.get(&context).and_then(|x| Some(x.sample()));
+        self.counts.get(&context).map(|x| x.sample())
     }
 
     pub fn generate(&self) -> String {
-        return self.generate_iter(0);
+        self.generate_iter(0)
     }
 
     fn generate_iter(&self, iter: i32) -> String {
@@ -127,7 +127,7 @@ impl MarkovChainModel {
             return "FAILED_NAME_GENERATION".to_string();
         }
 
-        while seq.len() == 0 || seq[seq.len() - 1] != Self::ENDCHAR {
+        while seq.is_empty() || seq[seq.len() - 1] != Self::ENDCHAR {
             if let Some(next_sample) = self.sample(&seq) {
                 seq.push(next_sample);
             } else {
@@ -135,7 +135,7 @@ impl MarkovChainModel {
             }
         }
 
-        return seq[..seq.len() - 1].iter().collect();
+        seq[..seq.len() - 1].iter().collect()
     }
 
     // default for prior 0.01?

@@ -112,7 +112,7 @@ fn queue_custom(
             };
             let key = view_key
                 | MeshPipelineKey::from_primitive_topology(mesh.primitive_topology())
-                | bevy::pbr::alpha_mode_pipeline_key(AlphaMode::Blend, &msaa);
+                | bevy::pbr::alpha_mode_pipeline_key(AlphaMode::Blend, msaa);
 
             let pipeline = pipelines
                 .specialize(&pipeline_cache, &star_pipeline, key, &mesh.layout)

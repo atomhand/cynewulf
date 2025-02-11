@@ -32,7 +32,7 @@ impl PlanetBillboardMaterial {
             surface_color: color,
             halo_color: Vec3::splat(1.0),
             planet_radius: radius,
-            star_pos: star_pos,
+            star_pos,
             alpha_mode: AlphaMode::Add,
         }
     }

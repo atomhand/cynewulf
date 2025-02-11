@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 pub fn update_orbiters(mut query: Query<(&mut Planet, &mut Transform)>) {
     for (mut planet, mut transform) in &mut query {
-        planet.orbital_date = planet.orbital_date + 1;
+        planet.orbital_date += 1;
         if planet.orbital_date == planet.orbital_period {
             planet.orbital_date = 0;
         }

@@ -232,8 +232,7 @@ fn update_hovered(
         {
             let Some((_, claim)) = selection
                 .selected
-                .map(|selected| galaxy_selectable_query.get(selected).ok())
-                .flatten()
+                .and_then(|selected| galaxy_selectable_query.get(selected).ok())
             else {
                 return;
             };

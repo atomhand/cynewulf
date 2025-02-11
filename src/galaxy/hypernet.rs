@@ -58,7 +58,7 @@ impl Hypernet {
     }
 
     fn import(&mut self, points: &Vec<Point>) {
-        let del = triangulate(&points);
+        let del = triangulate(points);
 
         for point in points {
             self.graph.add_node(Hypernode::new(Vec3::new(
@@ -137,11 +137,9 @@ impl Hypernet {
             let bn = self.graph.node_weight(b).unwrap();
             let d = an.pos.distance_squared(bn.pos);
 
-            if d > sqlen {
-                if let Some(_) = self.get_distance_without_link(a.index() as u32, b.index() as u32)
-                {
-                    self.graph.remove_edge(e);
-                }
+            if d > sqlen && self.get_distance_without_link(a.index() as u32, b.index() as u32).is_some()
+            {
+                self.graph.remove_edge(e);
             }
         }
     }
@@ -153,13 +151,13 @@ impl Hypernet {
         let mut candidate_edges = self.graph.edge_indices().collect::<Vec<_>>();
 
         let mut i = 0;
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         while i < number {
-            if candidate_edges.len() == 0 {
+            if candidate_edges.is_empty() {
                 break;
             }
 
-            let r = rng.gen_range(0..candidate_edges.len());
+            let r = rng.random_range(0..candidate_edges.len());
 
             let e = candidate_edges[r];
             candidate_edges.swap_remove(r);

@@ -1,19 +1,10 @@
 use crate::prelude::*;
 
+#[derive(Default)]
 pub struct DynamicStock {
     pub stock: i64,
     stock_frac: i64, // 3650ths of a stock. This could use IFraction but there isn't really any need to.
     change_per_decade: i64,
-}
-
-impl Default for DynamicStock {
-    fn default() -> Self {
-        Self {
-            stock: 0,
-            stock_frac: 0,
-            change_per_decade: 0,
-        }
-    }
 }
 
 impl std::string::ToString for DynamicStock {
@@ -39,7 +30,7 @@ impl DynamicStock {
         let fr = self.stock_frac + self.change_per_decade;
 
         self.stock_frac = fr % 3650;
-        self.stock = self.stock + fr / 3650;
+        self.stock += fr / 3650;
     }
 
     pub fn set_change_per_decade(&mut self, rate: i64) {

@@ -53,17 +53,17 @@ impl Planet {
     }
 
     pub fn make_random(star: &Star) -> Planet {
-        let mut rng = rand::thread_rng();
-        let orbit_rad = rng.gen_range(1.0..3.0);
-        let period = (rng.gen_range(2.0..3.0) * orbit_rad * 200.0) as u32;
-        let orbital_date = rng.gen_range(0..period);
+        let mut rng = rand::rng();
+        let orbit_rad = rng.random_range(1.0..3.0);
+        let period = (rng.random_range(2.0..3.0) * orbit_rad * 200.0) as u32;
+        let orbital_date = rng.random_range(0..period);
         Self::new(
             star.pos,
             star.node_id,
             orbit_rad,
             period,
             orbital_date,
-            rng.gen_range(0.1..1.0),
+            rng.random_range(0.1..1.0),
             star.get_insolation(orbit_rad),
         )
     }
