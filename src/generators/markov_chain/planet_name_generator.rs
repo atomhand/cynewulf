@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 // Each empire has its own separately configured name generator. (but the list of exhausted names is shared across everyone)
 
-#[derive(Resource,Default)]
+#[derive(Resource, Default)]
 pub struct UsedPlanetNames(HashSet<String>);
 
 pub struct PlanetNameGenerator {

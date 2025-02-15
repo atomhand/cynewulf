@@ -23,13 +23,12 @@ fn selection_proxy_highlight(
     for (mut border, proxy) in query.iter_mut() {
         *border = proxy
             .resolved_target
-            .map(
-                |target|
+            .map(|target| {
                 selection
-                        .get_selection_state(target)
-                        .as_colour_with_default(Color::linear_rgb(0.1, 0.1, 0.1))
-                        .into()
-            )
+                    .get_selection_state(target)
+                    .as_colour_with_default(Color::linear_rgb(0.1, 0.1, 0.1))
+                    .into()
+            })
             .unwrap_or(Color::NONE.into());
     }
 }

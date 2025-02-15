@@ -133,16 +133,8 @@ impl Economy {
 impl fmt::Display for Economy {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Output: ")?;
-        writeln!(
-            f,
-            "   Light:    {} ",
-            self.light_output.format_big_number()
-        )?;
-        writeln!(
-            f,
-            "   Heavy:    {} ",
-            self.heavy_output.format_big_number()
-        )?;
+        writeln!(f, "   Light:    {} ", self.light_output.format_big_number())?;
+        writeln!(f, "   Heavy:    {} ", self.heavy_output.format_big_number())?;
         writeln!(
             f,
             "   Advanced: {} ",

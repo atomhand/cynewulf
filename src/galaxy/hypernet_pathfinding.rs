@@ -148,12 +148,7 @@ impl Pathfinding for super::Hypernet {
                 }
                 if !closed[n.index()] {
                     closed[n.index()] = true;
-                    open.push(PathfindingNode::new(
-                        n.index() as u32,
-                        &top,
-                        dest_pos,
-                        self,
-                    ));
+                    open.push(PathfindingNode::new(n.index() as u32, &top, dest_pos, self));
                 }
             }
         }
@@ -227,12 +222,7 @@ impl Pathfinding for super::Hypernet {
             for n in self.graph.neighbors(top.star.into()) {
                 if !closed[n.index()] {
                     closed[n.index()] = true;
-                    open.push(PathfindingNode::new(
-                        n.index() as u32,
-                        &top,
-                        dest_pos,
-                        self,
-                    ));
+                    open.push(PathfindingNode::new(n.index() as u32, &top, dest_pos, self));
                 }
             }
         }

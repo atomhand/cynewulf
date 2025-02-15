@@ -137,7 +137,10 @@ impl Hypernet {
             let bn = self.graph.node_weight(b).unwrap();
             let d = an.pos.distance_squared(bn.pos);
 
-            if d > sqlen && self.get_distance_without_link(a.index() as u32, b.index() as u32).is_some()
+            if d > sqlen
+                && self
+                    .get_distance_without_link(a.index() as u32, b.index() as u32)
+                    .is_some()
             {
                 self.graph.remove_edge(e);
             }

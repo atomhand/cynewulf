@@ -76,7 +76,7 @@ pub fn nav_find_colony_target_system(
 
             let dijkstra = nav_filter.dijkstra(&vec![nav_pos.root_system]);
 
-            for (star_id,d_o) in dijkstra.iter().enumerate() {
+            for (star_id, d_o) in dijkstra.iter().enumerate() {
                 let Some(d) = d_o else {
                     continue;
                 };
