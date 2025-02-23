@@ -7,12 +7,7 @@ struct StarMaterial {
 @group(1) @binding(0)
 var<uniform> material :StarMaterial;
 
-
-fn rnd(n : i32) -> f32{
-    return fract(sin(f32(n)*543.21)*43758.5453);
-}
-
-
+// Really the shared elements should be pulled into a common file instead of duplicating across this and star_instancing
 fn draw_star(pos : vec2<f32>, star_color : vec3<f32>, I : f32) -> vec3<f32> {
     let a = (star_color.r + star_color.g + star_color.b) / 3.0;
 
@@ -36,12 +31,6 @@ fn draw_star(pos : vec2<f32>, star_color : vec3<f32>, I : f32) -> vec3<f32> {
     return col ;//* (1.0 - smoothstep(0.9,1.0,length(pos)));
 }
 
-const weights_4 = array<vec2<f32>,4>(
-    vec2<f32>(1.0/8.0,3.0/8.0),
-    vec2<f32>(3.0/8.0,-1.0/8.0),
-    vec2<f32>(-1.0/8.0,-3.0/8.0),
-    vec2<f32>(-3.0/8.0,1.0/8.0)
-);
 const weights_8 = array<vec2<f32>,8>(
     vec2<f32>(1.0/8.0,-3.0/8.0),
     vec2<f32>(-1.0/8.0,3.0/8.0),
@@ -56,22 +45,16 @@ const weights_8 = array<vec2<f32>,8>(
 @fragment
 fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     let uv = in.uv - vec2<f32>(0.5,0.5);
-    let dpdx = dpdx(uv);//vec2(dpdx(in.uv),dpdy(in.uv));
+    let dpdx = dpdx(uv);
     let dpdy = dpdy(uv);
 
-    let intensity = 1.0 / 256.0;//.02*exp(-15.*rnd(1));
-    var starcol  = draw_star(uv + dpdx * weights_8[0].x + dpdy * weights_8[0].y, material.color.rgb, intensity);
-    starcol     += draw_star(uv + dpdx * weights_8[1].x + dpdy * weights_8[1].y, material.color.rgb, intensity);
-    starcol     += draw_star(uv + dpdx * weights_8[2].x + dpdy * weights_8[2].y, material.color.rgb, intensity);
-    starcol     += draw_star(uv + dpdx * weights_8[3].x + dpdy * weights_8[3].y, material.color.rgb, intensity);
-    starcol     += draw_star(uv + dpdx * weights_8[4].x + dpdy * weights_8[4].y, material.color.rgb, intensity);
-    starcol     += draw_star(uv + dpdx * weights_8[5].x + dpdy * weights_8[5].y, material.color.rgb, intensity);
-    starcol     += draw_star(uv + dpdx * weights_8[6].x + dpdy * weights_8[6].y, material.color.rgb, intensity);
-    starcol     += draw_star(uv + dpdx * weights_8[7].x + dpdy * weights_8[7].y, material.color.rgb, intensity);
+    let intensity = 1.0 / 256.0;
+    var starcol = vec3(0.0);
+    for(var i =0; i<8; i+=1) {
+        starcol += draw_star(uv + dpdx * weights_8[i].x + dpdy * weights_8[i].y, material.color.rgb, intensity);
+    }
     starcol = starcol / 8.0;
 
     let a = (starcol.x+starcol.y+starcol.z)/3.0;
-
-    //return mix(vec4<f32>(0.0,0.0,0.0,1.0),vec4<f32>(starcol,a),a);
     return vec4<f32>(mix(vec3<f32>(0.0),starcol.rgb,a),1.0);
 }
