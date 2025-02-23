@@ -28,7 +28,7 @@ struct VertexOutput {
 
 @vertex
 fn vertex(vertex: Vertex) -> VertexOutput {
-    let billboard_margin_scale = 4.0;
+    let billboard_margin_scale = 1.0;
     let system_scale_factor = 10.0;
     let galaxy_scale_factor = 1.4;
 
