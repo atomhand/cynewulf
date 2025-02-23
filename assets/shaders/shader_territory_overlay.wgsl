@@ -166,9 +166,10 @@ fn sdRing( _p : vec2<f32>, n : vec2<f32>, r : f32, th : f32) -> f32
     return length(vec2(p.x,max(0.0,abs(r-p.y)-th*0.5)))*sign(p.x);
 }
 
-fn banded_rank_halo(pos : vec2<f32>, pixel_dist : f32,  offset : f32, thickness : f32, near_rank : f32) -> f32 {
+fn banded_rank_halo(pos : vec2<f32>, pixel_dist : f32,  offset : f32, _thickness : f32, near_rank : f32) -> f32 {
     let d : f32 = length(pos);
 
+    let thickness = _thickness * (0.33 + near_rank / 9.0);
     let p : f32 = 0.2;//pixel_dist/thickness;
     let transition_factor = saturate(0.4 * pixel_dist / p);
 
