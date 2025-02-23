@@ -404,10 +404,10 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let territory_col = a.col * c_weight.x + b.col * c_weight.y + c.col * c_weight.z;
 
     // selection halo
-    let system_halo_weight = halo_weight(halo_distance, antialias_dist, 1.0, 1.0) + halo_weight(halo_distance, antialias_dist, 2.5 + antialias_dist, 0.5);
+    let system_halo_weight = halo_weight(halo_distance, antialias_dist, 1.0, 0.6) + halo_weight(halo_distance, antialias_dist, 2.5 + antialias_dist, 0.6);
     let system_halo = a.system_halo * system_halo_weight.x + b.system_halo * system_halo_weight.y + c.system_halo * system_halo_weight.z;
 
-    let empire_halo_weight = gradient_halo(distance, antialias_dist, -antialias_dist, 4.0);// + halo_weight(distance, antialias_dist, 2.5 + antialias_dist, 0.5);
+    let empire_halo_weight = gradient_halo(distance, antialias_dist, antialias_dist+0.5, 4.0);// + halo_weight(distance, antialias_dist, 2.5 + antialias_dist, 0.5);
     let empire_halo = a.empire_halo * empire_halo_weight.x + b.empire_halo * empire_halo_weight.y + c.empire_halo * empire_halo_weight.z;
 
     // rank halo
