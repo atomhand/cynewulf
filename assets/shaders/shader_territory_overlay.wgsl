@@ -149,39 +149,63 @@ fn halo_weight(dist : vec3<f32>, pixel_dist : f32,  offset : f32, thickness : f3
 }
 
 fn gradient_halo(dist : vec3<f32>, pixel_dist : f32,  offset : f32, thickness : f32) -> vec3<f32> {
-    let a_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),-dist+offset);
+    let a_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist*2.0),-dist+offset);
     let a_outer = vec3(1.0) - smoothstep(vec3(0.0),vec3(thickness),dist-(offset));
 
     return saturate(min(a_inner,a_outer));
 }
 
-fn banded_rank_halo(dist : vec3<f32>, pixel_dist : f32,  offset : f32, thickness : f32, near_rank : i32) -> vec3<f32> {
-    let d : vec3<f32> = -(dist);
-    let range_min : f32 = abs(offset);
-    
-    let cutoff_min : f32 = range_min + thickness * (12.0 - f32(near_rank));
-    let range_max : f32 = abs(offset) + thickness * 1.0 * 12.0;
+// from iquilez, modified to remove the ring part...
+fn sdRing( _p : vec2<f32>, n : vec2<f32>, r : f32, th : f32) -> f32
+{
+    var p = _p;
+    p.x = abs(p.x);
+   
+    p = mat2x2(n.x,n.y,-n.y,n.x)*p;
 
+    return length(vec2(p.x,max(0.0,abs(r-p.y)-th*0.5)))*sign(p.x);
+}
 
-    let c_rank = (d-range_min) / vec3(thickness);
-    let f_dist : vec3<f32> = fract(c_rank);    
+fn banded_rank_halo(pos : vec2<f32>, pixel_dist : f32,  offset : f32, thickness : f32, near_rank : f32) -> f32 {
+    let d : f32 = length(pos);
 
     let p : f32 = 0.2;//pixel_dist/thickness;
-
-    let intensity = 1.0 - (d-range_min) / (range_max-range_min);
-
-    // fade out the 
     let transition_factor = saturate(0.4 * pixel_dist / p);
 
-    let f_inner = smoothstep(vec3(0.0),vec3(p), f_dist);
-    let f_outer = smoothstep(vec3(0.0),vec3(p), 1.0-f_dist);
-    let ff : vec3<f32> = mix(min(f_inner,f_outer),vec3(1.0),vec3(transition_factor));// * (f32(near_rank) - c_rank) / 12.0;
+    let range_min : f32 = offset;
+    
+    let cutoff_max : f32 = offset + thickness * floor(near_rank);
+    let range_max : f32 = offset + thickness * 12.0;
 
-    let r_inner = smoothstep(vec3(0.0),vec3(pixel_dist), d-vec3(cutoff_min));
-    let r_outer = smoothstep(vec3(0.0),vec3(pixel_dist), vec3(range_max)-d);
-    let rr: vec3<f32>= min(r_inner,r_outer);
 
-    return saturate(min(ff,rr)) * intensity;
+    let c_rank = (d-range_min) / thickness;
+    let f_dist : f32 = fract(c_rank);    
+
+
+    let intensity = (d-range_min) / (range_max-range_min);
+
+    // fade out the 
+
+    let f_inner = smoothstep(0.0,p, f_dist);
+    let f_outer = smoothstep(0.0,p, 1.0-f_dist);
+    let ff : f32 = mix(min(f_inner,f_outer),1.0,transition_factor);// * (f32(near_rank) - c_rank) / 12.0;
+
+    let r_inner = smoothstep(0.0,pixel_dist, d-range_min);
+    let r_outer = smoothstep(0.0,pixel_dist, cutoff_max-d);
+    let rr: f32= min(r_inner,r_outer);
+
+
+    let radius = cutoff_max + thickness * 0.5;
+    // angle for the outer ring
+    let fr = 3.14159*fract(near_rank);
+    let cs = vec2(cos(fr),sin(fr));
+    let ring_d = sdRing(pos, cs, radius, thickness);
+    let ring_w = smoothstep(0.0,p,-ring_d) ;//* (1.0-saturate(transition_factor*2.0-1.0));
+    let ring_outer = smoothstep(0.0,pixel_dist, cutoff_max+thickness-d);
+    
+    let ring = min(min(ring_outer,ff),ring_w);
+
+    return max(ring,saturate(min(ff,rr)) )* intensity;
 
 /*
     var res = vec3(0.0);
@@ -209,54 +233,6 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let a = star_data_array[input.star_id.x];
     let b = star_data_array[input.star_id.y];
     let c = star_data_array[input.star_id.z];
-
-    // NOTE FOR POTENTIAL OPTIMISATION
-    // Process
-    // 1. Detect the nearest star "X" out of the 3 (can get it directly from the barycentrics)
-    // 2. Sample the circle that includes X
-    // 3. Sample + combine the capsules XY and XZ
-    // (4. Below code doesn't do it right now, but it's also potentially necessary to subtract the circles Y and Z IF they don't share a colour with X.
-    //      This is to stop hyperlanes overlapping with star circles)
-    // This should give the same result as the below code for ~1/3 the operations
-    // It should also be neater and simpler since we work with 1 distance value instead of 3
-
-    // NOTE:
-    // Tried it, there were more visual artefacts than I thought lol
-
-    /*
-    var m = 0;
-    if input.barycentric.x > max(input.barycentric.y,input.barycentric.z) {
-        m = 0;
-    } else if input.barycentric.y > input.barycentric.z {
-        m = 1;
-    } else {
-        m = 2;
-    }
-    let n = (m+1) % 3;
-    let o = (m+2) % 3;
-
-    var distance = sd_circle(p, pos[m].xy, pos[m].w / 2.0);
-
-    if all(col[m] == col[n]) {
-        let m_f = star_adjusted_distance_factor(pos[m],pos[n],pos[o]) / 2.0;
-        let n_f = star_adjusted_distance_factor(pos[n],pos[m],pos[o]) / 2.0;
-        let f = min(m_f,n_f);
-        distance = min(distance, sd_uneven_capsule(p, pos[m].xy,pos[n].xy, f, f));
-    }
-    if all(col[m] == col[o]) {
-        let m_f = star_adjusted_distance_factor(pos[m],pos[o],pos[n]) / 2.0;
-        let o_f = star_adjusted_distance_factor(pos[o],pos[m],pos[n]) / 2.0;
-        let f = min(m_f,o_f);
-        distance = min(distance, sd_uneven_capsule(p, pos[m].xy,pos[o].xy, f, f));
-    }
-    
-    let edge_inner = 1.0 - smoothstep(0.0,16.0, -distance);
-    let edge_outer = 1.0 - smoothstep(0.0,0.1, distance);
-
-    let c_weight = saturate(min(edge_inner,edge_outer));
-
-    return c_weight * col[m];
-    */
 
     let circle_distance = vec3<f32>(
         sd_circle(p, a.pos.xy, a.pos.w / 2.0),
@@ -404,23 +380,23 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let territory_col = a.col * c_weight.x + b.col * c_weight.y + c.col * c_weight.z;
 
     // selection halo
-    let system_halo_weight = halo_weight(halo_distance, antialias_dist, 1.0, 0.6) + halo_weight(halo_distance, antialias_dist, 2.5 + antialias_dist, 0.6);
+    //let system_halo_weight = halo_weight(halo_distance, antialias_dist, 1.0, 0.6) + halo_weight(halo_distance, antialias_dist, 2.5 + antialias_dist, 0.6);
+    let system_halo_weight = gradient_halo(halo_distance, antialias_dist, antialias_dist+0.5, 4.0);
     let system_halo = a.system_halo * system_halo_weight.x + b.system_halo * system_halo_weight.y + c.system_halo * system_halo_weight.z;
 
     let empire_halo_weight = gradient_halo(distance, antialias_dist, antialias_dist+0.5, 4.0);// + halo_weight(distance, antialias_dist, 2.5 + antialias_dist, 0.5);
-    let empire_halo = a.empire_halo * empire_halo_weight.x + b.empire_halo * empire_halo_weight.y + c.empire_halo * empire_halo_weight.z;
+    let empire_halo : vec4<f32> = a.empire_halo * empire_halo_weight.x + b.empire_halo * empire_halo_weight.y + c.empire_halo * empire_halo_weight.z;
 
     // rank halo
-    var near_rank = 0;
+    var nearest = c;
     if circle_distance.x < min(circle_distance.y,circle_distance.z) {
-        near_rank = i32(a.pop_rank);
+        nearest = a;
     } else if circle_distance.y < circle_distance.z {
-        near_rank = i32(b.pop_rank);
-    } else {
-        near_rank = i32(c.pop_rank);
+        nearest = b;
     }
-    let rank_halo_weight = banded_rank_halo(circle_distance, antialias_dist, -7.0, 0.8, near_rank);
-    let rank_halo = a.col * rank_halo_weight.x + b.col * rank_halo_weight.y + c.col* rank_halo_weight.z;
+
+    let rank_halo_weight = banded_rank_halo(p - nearest.pos.xy, antialias_dist, 5.0, 0.8, nearest.pop_rank);
+    let rank_halo : vec4<f32> = nearest.col * rank_halo_weight;
 
     let hyperlane_col = vec4(lane.col,1.0);
     let hyperlane_alpha = 1.0 - smoothstep(0.0,antialias_dist,hyperlane_dist);
