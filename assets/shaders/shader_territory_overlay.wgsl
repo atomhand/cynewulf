@@ -142,36 +142,46 @@ fn pick(rd : vec3<f32>, v : f32) -> vec3<f32> {
 }
 
 fn halo_weight(dist : vec3<f32>, pixel_dist : f32,  offset : f32, thickness : f32) -> vec3<f32> {
-    let offset2 = offset+thickness + offset*0.5;
-    let thickness2 = thickness * 0.5;
-
     let a_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),-dist+offset-thickness);
     let a_outer = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),dist-(offset));
 
     return saturate(min(a_inner,a_outer));
 }
 
-fn octave_halo_weight(dist : vec3<f32>, pixel_dist : f32,  offset : f32, thickness : f32, near_rank : i32) -> vec3<f32> {
+fn gradient_halo(dist : vec3<f32>, pixel_dist : f32,  offset : f32, thickness : f32) -> vec3<f32> {
+    let a_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),-dist+offset);
+    let a_outer = vec3(1.0) - smoothstep(vec3(0.0),vec3(thickness),dist-(offset));
 
+    return saturate(min(a_inner,a_outer));
+}
+
+fn banded_rank_halo(dist : vec3<f32>, pixel_dist : f32,  offset : f32, thickness : f32, near_rank : i32) -> vec3<f32> {
     let d : vec3<f32> = -(dist);
     let range_min : f32 = abs(offset);
-    let range_max : f32 = abs(offset) + thickness * 1.0 * f32(near_rank);
+    
+    let cutoff_min : f32 = range_min + thickness * (12.0 - f32(near_rank));
+    let range_max : f32 = abs(offset) + thickness * 1.0 * 12.0;
 
 
     let c_rank = (d-range_min) / vec3(thickness);
     let f_dist : vec3<f32> = fract(c_rank);    
 
-    let p : f32 = pixel_dist/thickness;
+    let p : f32 = 0.2;//pixel_dist/thickness;
+
+    let intensity = 1.0 - (d-range_min) / (range_max-range_min);
+
+    // fade out the 
+    let transition_factor = saturate(0.4 * pixel_dist / p);
 
     let f_inner = smoothstep(vec3(0.0),vec3(p), f_dist);
     let f_outer = smoothstep(vec3(0.0),vec3(p), 1.0-f_dist);
-    let ff : vec3<f32> = min(f_inner,f_outer) * (f32(near_rank) - c_rank) / 12.0;
+    let ff : vec3<f32> = mix(min(f_inner,f_outer),vec3(1.0),vec3(transition_factor));// * (f32(near_rank) - c_rank) / 12.0;
 
-    let r_inner = smoothstep(vec3(0.0),vec3(pixel_dist), d-vec3(range_min));
+    let r_inner = smoothstep(vec3(0.0),vec3(pixel_dist), d-vec3(cutoff_min));
     let r_outer = smoothstep(vec3(0.0),vec3(pixel_dist), vec3(range_max)-d);
     let rr: vec3<f32>= min(r_inner,r_outer);
 
-    return saturate(min(ff,rr));
+    return saturate(min(ff,rr)) * intensity;
 
 /*
     var res = vec3(0.0);
@@ -385,7 +395,8 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     // Get a cheap antialiasing by softly fading out any edges over a short distance scaled with the pixel derivatives
     let antialias_dist = length(fwidth(input.world_pos.xz));
 
-    let edge_inner = vec3(1.0) - 0.9 * smoothstep(vec3(0.0),vec3(5.0), -distance);
+    let territory_falloff_band = 3.0;
+    let edge_inner = vec3(1.0) - 0.9 * smoothstep(vec3(0.0),vec3(territory_falloff_band), -distance);
     let edge_outer = vec3(1.0) - smoothstep(vec3(0.0), vec3(antialias_dist), distance);
 
     let c_weight = saturate(min(edge_inner,edge_outer));
@@ -396,7 +407,7 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let system_halo_weight = halo_weight(halo_distance, antialias_dist, 1.0, 1.0) + halo_weight(halo_distance, antialias_dist, 2.5 + antialias_dist, 0.5);
     let system_halo = a.system_halo * system_halo_weight.x + b.system_halo * system_halo_weight.y + c.system_halo * system_halo_weight.z;
 
-    let empire_halo_weight = halo_weight(distance, antialias_dist, 1.0, 1.0) + halo_weight(distance, antialias_dist, 2.5 + antialias_dist, 0.5);
+    let empire_halo_weight = gradient_halo(distance, antialias_dist, -antialias_dist, 4.0);// + halo_weight(distance, antialias_dist, 2.5 + antialias_dist, 0.5);
     let empire_halo = a.empire_halo * empire_halo_weight.x + b.empire_halo * empire_halo_weight.y + c.empire_halo * empire_halo_weight.z;
 
     // rank halo
@@ -408,7 +419,7 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     } else {
         near_rank = i32(c.pop_rank);
     }
-    let rank_halo_weight = octave_halo_weight(circle_distance, antialias_dist, -7.0, 0.8, near_rank);
+    let rank_halo_weight = banded_rank_halo(circle_distance, antialias_dist, -7.0, 0.8, near_rank);
     let rank_halo = a.col * rank_halo_weight.x + b.col * rank_halo_weight.y + c.col* rank_halo_weight.z;
 
     let hyperlane_col = vec4(lane.col,1.0);
