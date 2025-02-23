@@ -28,12 +28,16 @@ struct VertexOutput {
 
 @vertex
 fn vertex(vertex: Vertex) -> VertexOutput {
-    //let model = get_world_from_local(vertex.instance_index);
+    let billboard_margin_scale = 4.0;
+    let system_scale_factor = 10.0;
+    let galaxy_scale_factor = 1.4;
 
-    let billboard_scale_boost = 4.0;
-
-    let star_radius = 0.0093;//vertex.i_pos_scale.w;
-    let scale_factor =  billboard_scale_boost * mix(10.0,star_radius * 30.0, settings.system_transition_factor);
+    let star_radius = vertex.i_pos_scale.w;
+    let scale_factor =  mix(
+        (length(vertex.i_color.rgb)/10.0+6.0)*galaxy_scale_factor,
+        star_radius * system_scale_factor,
+        settings.system_transition_factor
+    ) * billboard_margin_scale;
 
     let camera_right = normalize(vec3<f32>(view.clip_from_world.x.x, view.clip_from_world.y.x, view.clip_from_world.z.x));
     let camera_up = normalize(vec3<f32>(view.clip_from_world.x.y, view.clip_from_world.y.y, view.clip_from_world.z.y));
@@ -43,8 +47,8 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 
     var out: VertexOutput;
     out.clip_position = position;
-    out.color = vertex.i_color;
-    out.uv = vertex.position.xy * billboard_scale_boost;//mix(galaxy_billboard_scale,1.0,settings.system_transition_factor);
+    out.color = vec4<f32>(normalize(vertex.i_color.rgb),1.0);
+    out.uv = vertex.position.xy * billboard_margin_scale;
 
     return out;
 }
@@ -55,19 +59,16 @@ fn rnd(n : i32) -> f32{
 
 
 fn draw_star(pos : vec2<f32>, star_color : vec3<f32>, I : f32) -> vec3<f32> {
-    let a = (star_color.r + star_color.g + star_color.b) / 3.0;
+    let c = star_color;
 
-    let c = star_color * (0.5 + 0.5 / a);//star_color * (24.0 / a);
-
-    var SCALE = 1.0;// /16.0;
-    var d : f32 = length(pos) * SCALE * 1.3;
+    var d : f32 = length(pos);
 
     var col = I * c;
     var spectrum = I * c;
 
     col = spectrum / (d*d*d);
 
-    let ARMS_SCALE = SCALE / 1.4;
+    let ARMS_SCALE = 1.0 / 1.4;
 
     d = length(pos * vec2<f32>(50.0,0.5)) * ARMS_SCALE;
     col += spectrum/ (d*d*d) * (1.0 - settings.system_transition_factor);
@@ -100,14 +101,12 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let dpdy = dpdy(in.uv);
 
     let intensity = 1.0 / 256.0;//.02*exp(-15.*rnd(1));
-    var starcol  = draw_star(in.uv + dpdx * weights_8[0].x + dpdy * weights_8[0].y, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + dpdx * weights_8[1].x + dpdy * weights_8[1].y, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + dpdx * weights_8[2].x + dpdy * weights_8[2].y, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + dpdx * weights_8[3].x + dpdy * weights_8[3].y, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + dpdx * weights_8[4].x + dpdy * weights_8[4].y, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + dpdx * weights_8[5].x + dpdy * weights_8[5].y, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + dpdx * weights_8[6].x + dpdy * weights_8[6].y, in.color.rgb, intensity);
-    starcol     += draw_star(in.uv + dpdx * weights_8[7].x + dpdy * weights_8[7].y, in.color.rgb, intensity);
+
+    var starcol = vec3<f32>(0.0);
+    for(var i =0; i<8; i+=1) {
+        starcol     += draw_star(in.uv + dpdx * weights_8[i].x + dpdy * weights_8[i].y, in.color.rgb, intensity);
+    }
+
     starcol = starcol / 8.0;
 
     let a = (starcol.x+starcol.y+starcol.z)/3.0;
