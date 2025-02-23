@@ -6,6 +6,7 @@ struct StarFormat {
     col : vec4<f32>,
     empire_halo : vec4<f32>,
     system_halo : vec4<f32>,
+    pop_rank : f32,
 }
 struct LaneFormat {
     enabled : u32,
@@ -144,10 +145,48 @@ fn halo_weight(dist : vec3<f32>, pixel_dist : f32,  offset : f32, thickness : f3
     let offset2 = offset+thickness + offset*0.5;
     let thickness2 = thickness * 0.5;
 
-    let a_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),-dist+offset);
-    let a_outer = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),dist-(offset+thickness));
+    let a_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),-dist+offset-thickness);
+    let a_outer = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),dist-(offset));
 
     return saturate(min(a_inner,a_outer));
+}
+
+fn octave_halo_weight(dist : vec3<f32>, pixel_dist : f32,  offset : f32, thickness : f32, near_rank : i32) -> vec3<f32> {
+
+    let d : vec3<f32> = -(dist);
+    let range_min : f32 = abs(offset);
+    let range_max : f32 = abs(offset) + thickness * 1.0 * f32(near_rank);
+
+
+    let c_rank = (d-range_min) / vec3(thickness);
+    let f_dist : vec3<f32> = fract(c_rank);    
+
+    let p : f32 = pixel_dist/thickness;
+
+    let f_inner = smoothstep(vec3(0.0),vec3(p), f_dist);
+    let f_outer = smoothstep(vec3(0.0),vec3(p), 1.0-f_dist);
+    let ff : vec3<f32> = min(f_inner,f_outer) * (f32(near_rank) - c_rank) / 12.0;
+
+    let r_inner = smoothstep(vec3(0.0),vec3(pixel_dist), d-vec3(range_min));
+    let r_outer = smoothstep(vec3(0.0),vec3(pixel_dist), vec3(range_max)-d);
+    let rr: vec3<f32>= min(r_inner,r_outer);
+
+    return saturate(min(ff,rr));
+
+/*
+    var res = vec3(0.0);
+    for(var i: i32=0; i<12; i++) {
+        if i >= near_rank {
+            break;
+        }
+        let l_offset = thickness + offset - (thickness) * 1.5 * f32(i);
+        let a_inner = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),-dist+l_offset);
+        let a_outer = vec3(1.0) - smoothstep(vec3(0.0),vec3(pixel_dist),dist-(l_offset+thickness-pixel_dist));
+
+        res = max(res,min(a_inner,a_outer));
+    }
+
+    return res;*/
 }
 
 @fragment
@@ -360,10 +399,22 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let empire_halo_weight = halo_weight(distance, antialias_dist, 1.0, 1.0) + halo_weight(distance, antialias_dist, 2.5 + antialias_dist, 0.5);
     let empire_halo = a.empire_halo * empire_halo_weight.x + b.empire_halo * empire_halo_weight.y + c.empire_halo * empire_halo_weight.z;
 
+    // rank halo
+    var near_rank = 0;
+    if circle_distance.x < min(circle_distance.y,circle_distance.z) {
+        near_rank = i32(a.pop_rank);
+    } else if circle_distance.y < circle_distance.z {
+        near_rank = i32(b.pop_rank);
+    } else {
+        near_rank = i32(c.pop_rank);
+    }
+    let rank_halo_weight = octave_halo_weight(circle_distance, antialias_dist, -7.0, 0.8, near_rank);
+    let rank_halo = a.col * rank_halo_weight.x + b.col * rank_halo_weight.y + c.col* rank_halo_weight.z;
+
     let hyperlane_col = vec4(lane.col,1.0);
     let hyperlane_alpha = 1.0 - smoothstep(0.0,antialias_dist,hyperlane_dist);
 
-    let sel_col = mix(empire_halo,system_halo,system_halo.a);
+    let sel_col = mix(max(empire_halo,rank_halo),system_halo,system_halo.a);
 
     return mix(mix(territory_col,sel_col,sel_col.a),hyperlane_col,hyperlane_alpha);
 }
