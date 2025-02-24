@@ -38,7 +38,7 @@ pub struct CameraMain {
     system_radius: f32,
     zoom: f32,
     smooth_zoom_buffer: f32,
-    dragging: Option<Vec3>,
+    drag_origin: Option<Vec3>,
     pub mode_transition: f32,
 }
 
@@ -51,7 +51,7 @@ impl Default for CameraMain {
             star_local_pos: Vec3::ZERO,
             smooth_zoom_buffer: 0.0,
             star_pos: Vec3::ZERO,
-            dragging: None,
+            drag_origin: None,
             mode_transition: 0.0,
         }
     }
@@ -155,28 +155,27 @@ pub fn camera_control_system(
                 .map(|distance| ray.get_point(distance))
         });
 
-    let mut key_delta = Vec3::ZERO;
-
     if mouse_buttons.pressed(MouseButton::Middle) {
-        if camera_main.dragging.is_none() {
-            camera_main.dragging = mouse_world_pos;
+        if camera_main.drag_origin.is_none() {
+            camera_main.drag_origin = mouse_world_pos;
         }
     } else {
-        camera_main.dragging = None;
+        camera_main.drag_origin = None;
+    }
 
-        // no keyboard movement unless drag pan is not active
-        if keys.pressed(KeyCode::KeyW) {
-            key_delta.z += 1.0;
-        }
-        if keys.pressed(KeyCode::KeyA) {
-            key_delta.x += 1.0;
-        }
-        if keys.pressed(KeyCode::KeyS) {
-            key_delta.z -= 1.0;
-        }
-        if keys.pressed(KeyCode::KeyD) {
-            key_delta.x -= 1.0;
-        }
+    // key delta to use later
+    let mut key_delta = Vec3::ZERO;
+    if keys.pressed(KeyCode::KeyW) {
+        key_delta.z += 1.0;
+    }
+    if keys.pressed(KeyCode::KeyA) {
+        key_delta.x += 1.0;
+    }
+    if keys.pressed(KeyCode::KeyS) {
+        key_delta.z -= 1.0;
+    }
+    if keys.pressed(KeyCode::KeyD) {
+        key_delta.x -= 1.0;
     }
 
     match camera_settings.camera_mode {
@@ -193,7 +192,7 @@ pub fn camera_control_system(
                 camera_main.zoom = 0.0;
                 selection.zoomed_system = None;
                 // reset camera drag to avoid weird stuff
-                camera_main.dragging = None;
+                camera_main.drag_origin = None;
             }
         }
         CameraMode::Galaxy => {
@@ -206,7 +205,7 @@ pub fn camera_control_system(
                 camera_main.system_radius = star.system_radius_actual();
                 camera_settings.star = Some(star_ent);
                 // reset camera drag to avoid weird stuff
-                camera_main.dragging = None;
+                camera_main.drag_origin = None;
             }
         }
     }
@@ -268,6 +267,16 @@ pub fn camera_control_system(
             let tzoom = camera_main.zoom * 0.85 + 0.15;
             let speed: f32 = (tzoom * galaxy_scale) * 0.5 * time.delta_secs();
             camera_main.target_pos += key_delta * speed;
+
+            // Activate the mouse drag system while zooming
+            if camera_main.zoom != old_zoom && camera_main.drag_origin.is_none() {
+                camera_main.drag_origin = mouse_world_pos;
+            }
+            // apply key delta  to drag origin so keyboard movement works as expected during drag
+            if let Some(drag) = camera_main.drag_origin {
+                camera_main.drag_origin = Some(drag + key_delta * speed);
+            }
+
             let d = camera_main.target_pos.xz().length();
             if d > galaxy_config.radius {
                 camera_main.target_pos *= galaxy_config.radius / d;
@@ -277,9 +286,6 @@ pub fn camera_control_system(
     }
 
     //
-    if camera_main.zoom != old_zoom && camera_main.dragging.is_none() {
-        camera_main.dragging = mouse_world_pos;
-    }
 
     for _i in 0..2 {
         transform.translation =
@@ -302,7 +308,7 @@ pub fn camera_control_system(
             return;
         };
 
-        if let Some(drag_origin) = camera_main.dragging {
+        if let Some(drag_origin) = camera_main.drag_origin {
             let drag_offset = drag_origin - mouse_pos;
 
             camera_main.target_pos += drag_offset;
