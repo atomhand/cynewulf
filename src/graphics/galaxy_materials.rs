@@ -8,7 +8,10 @@ pub struct StarBillboardPlugin;
 
 impl Plugin for StarBillboardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((MaterialPlugin::<PlanetBillboardMaterial>::default(),));
+        app.add_plugins((
+            MaterialPlugin::<PlanetBillboardMaterial>::default(),
+            MaterialPlugin::<GalaxyVolumeMaterial>::default(),
+        ));
     }
 }
 
@@ -44,6 +47,35 @@ impl Material for PlanetBillboardMaterial {
     }
     fn vertex_shader() -> ShaderRef {
         "shaders/shader_planet_closeup.wgsl".into()
+    }
+    fn alpha_mode(&self) -> AlphaMode {
+        self.alpha_mode
+    }
+}
+
+// GALAXY - VOLUME MATERIAL
+
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+pub struct GalaxyVolumeMaterial {
+    #[uniform(0)]
+    pub radius: f32,
+    alpha_mode: AlphaMode,
+}
+impl GalaxyVolumeMaterial {
+    pub fn new(radius: f32) -> Self {
+        Self {
+            radius,
+            alpha_mode: AlphaMode::Blend,
+        }
+    }
+}
+
+impl Material for GalaxyVolumeMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/shader_galaxy_volume.wgsl".into()
+    }
+    fn vertex_shader() -> ShaderRef {
+        "shaders/shader_galaxy_volume.wgsl".into()
     }
     fn alpha_mode(&self) -> AlphaMode {
         self.alpha_mode

@@ -1,4 +1,4 @@
-use super::galaxy_materials::PlanetBillboardMaterial;
+use super::galaxy_materials::{GalaxyVolumeMaterial, PlanetBillboardMaterial};
 use crate::camera::{CameraMode, CameraSettings};
 use crate::galaxy::Selection;
 use crate::prelude::*;
@@ -9,9 +9,29 @@ pub struct DrawGalaxyPlugin;
 impl Plugin for DrawGalaxyPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(super::instanced_star_pipeline::StarMaterialPlugin)
-            .add_systems(BuildGalaxyGraphics, (finish_assemble_star_system, star_gfx))
+            .add_systems(
+                BuildGalaxyGraphics,
+                (finish_assemble_star_system, star_gfx, place_galaxy_volume),
+            )
             .add_systems(Update, update_planet_materials);
     }
+}
+
+fn place_galaxy_volume(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut galaxy_materials: ResMut<Assets<GalaxyVolumeMaterial>>,
+    galaxy_config: Res<GalaxyConfig>,
+) {
+    let galaxy_mesh = meshes.add(Cuboid::from_size(Vec3::splat(2.0)));
+    let mat = galaxy_materials.add(GalaxyVolumeMaterial::new(galaxy_config.radius));
+    commands.spawn((
+        Mesh3d(galaxy_mesh),
+        Transform::IDENTITY,
+        Visibility::Inherited,
+        MeshMaterial3d(mat),
+        bevy::render::view::NoFrustumCulling,
+    ));
 }
 
 fn finish_assemble_star_system(
