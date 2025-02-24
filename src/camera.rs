@@ -37,6 +37,7 @@ pub struct CameraMain {
     star_local_pos: Vec3,
     system_radius: f32,
     zoom: f32,
+    smooth_zoom_buffer: f32,
     dragging: Option<Vec3>,
     pub mode_transition: f32,
 }
@@ -48,6 +49,7 @@ impl Default for CameraMain {
             zoom: 1.0,
             system_radius: 1.0,
             star_local_pos: Vec3::ZERO,
+            smooth_zoom_buffer: 0.0,
             star_pos: Vec3::ZERO,
             dragging: None,
             mode_transition: 0.0,
@@ -216,6 +218,10 @@ pub fn camera_control_system(
     // Update
     match camera_settings.camera_mode {
         CameraMode::Star => {
+             // wipe smooth zoom buffer so nothing weird happens when switching modes
+             // In future there is probably going to be zoom in star view, so wipe should happen specifically when transitioning
+            camera_main.smooth_zoom_buffer = 0.0;
+
             let speed: f32 = GalaxyConfig::AU_SCALE * 6.0 * time.delta_secs();
             camera_main.star_local_pos += key_delta * speed;
 
@@ -226,16 +232,32 @@ pub fn camera_control_system(
             camera_main.mode_transition = (camera_main.mode_transition + transition_speed).min(1.0);
         }
         CameraMode::Galaxy => {
+            // scroll delta is cached to a buffer 
+            // buffer is converted to actual zoom over time for a smooth zooming effect
             for ev in scroll_evr.read() {
                 match ev.unit {
                     MouseScrollUnit::Line => {
-                        camera_main.zoom -= ev.y * 0.05;
+                        //camera_main.zoom -= ev.y * 0.05;
+                        camera_main.smooth_zoom_buffer += ev.y;
                     }
                     MouseScrollUnit::Pixel => {
-                        camera_main.zoom -= ev.y * 0.05;
+                        //camera_main.zoom -= ev.y * 0.05;
+                        camera_main.smooth_zoom_buffer += ev.y;
                     }
                 }
             }
+
+            let smooth_zoom_min = 0.001f32;
+            let smooth_zoom_factor = 0.2f32;
+
+            let smooth_zoom_amount = if camera_main.smooth_zoom_buffer < 0.0 {
+                f32::min(camera_main.smooth_zoom_buffer*smooth_zoom_factor,(-smooth_zoom_min).max(camera_main.smooth_zoom_buffer))
+            } else {
+                f32::max(camera_main.smooth_zoom_buffer*smooth_zoom_factor,smooth_zoom_min.min(camera_main.smooth_zoom_buffer))
+            };
+            camera_main.zoom -= smooth_zoom_amount * 0.05;
+            camera_main.smooth_zoom_buffer -= smooth_zoom_amount;
+
             camera_main.zoom = camera_main.zoom.clamp(0., 1.);
             let tzoom = camera_main.zoom * 0.85 + 0.15;
             let speed: f32 = (tzoom * galaxy_scale) * 0.5 * time.delta_secs();
