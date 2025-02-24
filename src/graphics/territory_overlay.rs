@@ -30,7 +30,7 @@ struct StarFormat {
     color: Vec4,
     empire_halo: Vec4,
     system_halo: Vec4,
-    star_pop_rank : f32,
+    star_pop_rank: f32,
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
@@ -111,7 +111,7 @@ fn update_overlays(
     star_update_query: Query<(Entity, &StarGfxTag, &StarClaim, &SystemIndex), With<Star>>,
     star_changed_update_query: Query<
         (Entity, &StarGfxTag, &StarClaim, &SystemIndex),
-        (With<Star>, Or<(Changed<StarClaim>,Changed<SystemIndex>)>),
+        (With<Star>, Or<(Changed<StarClaim>, Changed<SystemIndex>)>),
     >,
     stars_query: Query<&Star>,
     empire_query: Query<&Empire>,
@@ -161,10 +161,11 @@ fn update_overlays(
             overlays_data.star_data[tag.id].empire_halo = empire_halo_col.to_linear().to_vec4();
             overlays_data.star_data[tag.id].color = col.to_vec4();
 
-            overlays_data.star_data[tag.id].star_pop_rank = f64::log10(1.0+system_index.population as f64) as f32;
+            overlays_data.star_data[tag.id].star_pop_rank =
+                f64::log10(1.0 + system_index.population as f64) as f32;
         }
     } else {
-        for (entity, tag, claim,system_index) in &star_changed_update_query {
+        for (entity, tag, claim, system_index) in &star_changed_update_query {
             let col: Srgba = if let Some(owner) = claim.owner {
                 empire_query.get(owner).unwrap().color.to_srgba()
             } else {
@@ -181,7 +182,8 @@ fn update_overlays(
             overlays_data.star_data[tag.id].empire_halo = empire_halo_col.to_linear().to_vec4();
             overlays_data.star_data[tag.id].color = col.to_vec4();
 
-            overlays_data.star_data[tag.id].star_pop_rank = i64::checked_ilog10(system_index.population).unwrap_or(0) as f32;
+            overlays_data.star_data[tag.id].star_pop_rank =
+                i64::checked_ilog10(system_index.population).unwrap_or(0) as f32;
 
             any_change = true;
         }

@@ -218,8 +218,8 @@ pub fn camera_control_system(
     // Update
     match camera_settings.camera_mode {
         CameraMode::Star => {
-             // wipe smooth zoom buffer so nothing weird happens when switching modes
-             // In future there is probably going to be zoom in star view, so wipe should happen specifically when transitioning
+            // wipe smooth zoom buffer so nothing weird happens when switching modes
+            // In future there is probably going to be zoom in star view, so wipe should happen specifically when transitioning
             camera_main.smooth_zoom_buffer = 0.0;
 
             let speed: f32 = GalaxyConfig::AU_SCALE * 6.0 * time.delta_secs();
@@ -232,7 +232,7 @@ pub fn camera_control_system(
             camera_main.mode_transition = (camera_main.mode_transition + transition_speed).min(1.0);
         }
         CameraMode::Galaxy => {
-            // scroll delta is cached to a buffer 
+            // scroll delta is cached to a buffer
             // buffer is converted to actual zoom over time for a smooth zooming effect
             for ev in scroll_evr.read() {
                 match ev.unit {
@@ -251,9 +251,15 @@ pub fn camera_control_system(
             let smooth_zoom_factor = 0.2f32;
 
             let smooth_zoom_amount = if camera_main.smooth_zoom_buffer < 0.0 {
-                f32::min(camera_main.smooth_zoom_buffer*smooth_zoom_factor,(-smooth_zoom_min).max(camera_main.smooth_zoom_buffer))
+                f32::min(
+                    camera_main.smooth_zoom_buffer * smooth_zoom_factor,
+                    (-smooth_zoom_min).max(camera_main.smooth_zoom_buffer),
+                )
             } else {
-                f32::max(camera_main.smooth_zoom_buffer*smooth_zoom_factor,smooth_zoom_min.min(camera_main.smooth_zoom_buffer))
+                f32::max(
+                    camera_main.smooth_zoom_buffer * smooth_zoom_factor,
+                    smooth_zoom_min.min(camera_main.smooth_zoom_buffer),
+                )
             };
             camera_main.zoom -= smooth_zoom_amount * 0.05;
             camera_main.smooth_zoom_buffer -= smooth_zoom_amount;
