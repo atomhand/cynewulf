@@ -233,15 +233,14 @@ pub fn camera_control_system(
         CameraMode::Galaxy => {
             // scroll delta is cached to a buffer
             // buffer is converted to actual zoom over time for a smooth zooming effect
+            let zoom_sensitivity = 0.05;
             for ev in scroll_evr.read() {
                 match ev.unit {
                     MouseScrollUnit::Line => {
-                        //camera_main.zoom -= ev.y * 0.05;
-                        camera_main.smooth_zoom_buffer += ev.y;
+                        camera_main.smooth_zoom_buffer += ev.y * zoom_sensitivity;
                     }
                     MouseScrollUnit::Pixel => {
-                        //camera_main.zoom -= ev.y * 0.05;
-                        camera_main.smooth_zoom_buffer += ev.y;
+                        camera_main.smooth_zoom_buffer += ev.y * zoom_sensitivity;
                     }
                 }
             }
@@ -260,7 +259,7 @@ pub fn camera_control_system(
                     smooth_zoom_min.min(camera_main.smooth_zoom_buffer),
                 )
             };
-            camera_main.zoom -= smooth_zoom_amount * 0.05;
+            camera_main.zoom -= smooth_zoom_amount;
             camera_main.smooth_zoom_buffer -= smooth_zoom_amount;
 
             camera_main.zoom = camera_main.zoom.clamp(0., 1.);
