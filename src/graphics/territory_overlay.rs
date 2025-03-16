@@ -190,6 +190,7 @@ fn update_overlays(
     }
 
     if any_change {
+        // Mutably dereferencing the material is necessary to make the engine notice that its buffers have been updated
         let Some(mat) = mats.get_mut(&overlays_data.material_handle) else {
             return;
         };
