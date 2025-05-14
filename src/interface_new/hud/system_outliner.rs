@@ -82,7 +82,7 @@ fn setup_widget(mut commands: Commands) {
                             SelectionPanelTabHeader { slot: i as i32 },
                             BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.2)),
                             Text("Header text".to_string()),
-                            PickingBehavior {
+                            Pickable {
                                 should_block_lower: false,
                                 is_hoverable: false,
                             },
@@ -91,7 +91,7 @@ fn setup_widget(mut commands: Commands) {
                             SelectionPanelTabDetails { slot: i as i32 },
                             BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.75)),
                             Text("Tab details text".to_string()),
-                            PickingBehavior {
+                            Pickable {
                                 should_block_lower: false,
                                 is_hoverable: false,
                             },

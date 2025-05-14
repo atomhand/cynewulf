@@ -63,7 +63,7 @@ pub fn fleet_preview_gizmos(
     camera: Query<&CameraMain>,
     mut gizmos: Gizmos,
 ) {
-    let cam = camera.get_single().unwrap();
+    let cam = camera.single().unwrap();
     let transition = cam.adjusted_mode_transition();
     for (entity, nav_pos, fleet) in nav_query.iter() {
         let empire = empire_query.get(fleet.owner).unwrap();

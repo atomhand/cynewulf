@@ -27,9 +27,9 @@ fn update_hits(
     hypernet: Res<Hypernet>,
     mut output_events: EventWriter<PointerHits>,
 ) {
-    let cam = camera.get_single().unwrap();
+    let cam = camera.single().unwrap();
     let cam_transition = cam.adjusted_mode_transition();
-    for (&ray_id, &ray) in ray_map.map().iter() {
+    for (&ray_id, &ray) in ray_map.map.iter() {
         let Ok((camera, _cam_layers)) = picking_cameras.get(ray_id.camera) else {
             continue;
         };
@@ -45,16 +45,16 @@ fn update_hits(
                 CameraMode::Star => {
                     if let Some(star) = camera_settings.star {
                         if let Ok(children) = stars.get(star) {
-                            let mut system_entities: Vec<&Entity> = children.iter().collect();
-                            system_entities.push(&star);
+                            let mut system_entities: Vec<Entity> = children.iter().collect();
+                            system_entities.push(star);
                             for entity in system_entities {
                                 if let Ok((selectable, transform)) =
-                                    system_selectable_query.get(*entity)
+                                    system_selectable_query.get(entity)
                                 {
                                     let d = transform.translation().distance_squared(mouse_point);
                                     if d < n_dist && d < selectable.radius * selectable.radius {
                                         n_dist = d;
-                                        nearest = Some(*entity);
+                                        nearest = Some(entity);
                                     }
                                 }
                             }
@@ -84,7 +84,7 @@ fn update_hits(
             }
 
             if let Some(nearest) = nearest {
-                output_events.send(PointerHits::new(
+                output_events.write(PointerHits::new(
                     ray_id.pointer,
                     vec![(nearest, HitData::new(ray_id.camera, distance, None, None))],
                     camera.order as f32,

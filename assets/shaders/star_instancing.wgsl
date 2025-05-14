@@ -39,8 +39,8 @@ fn vertex(vertex: Vertex) -> VertexOutput {
         settings.system_transition_factor
     ) * billboard_margin_scale;
 
-    let camera_right = normalize(vec3<f32>(view.clip_from_world.x.x, view.clip_from_world.y.x, view.clip_from_world.z.x));
-    let camera_up = normalize(vec3<f32>(view.clip_from_world.x.y, view.clip_from_world.y.y, view.clip_from_world.z.y));
+    let camera_right = normalize(vec3<f32>(view.clip_from_world[0].x, view.clip_from_world[1].x, view.clip_from_world[2].x));    
+    let camera_up = normalize(vec3<f32>(view.clip_from_world[0].y, view.clip_from_world[1].y, view.clip_from_world[2].y));
 
     let world_space = (camera_right * vertex.position.x + camera_up * vertex.position.y ) * scale_factor;
     let position = view.clip_from_world * vec4<f32>(world_space+ vertex.i_pos_scale.xyz, 1.0);

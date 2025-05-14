@@ -16,7 +16,7 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.15.2" }
+bevy = { version = "0.16.0" }
 bevy_framepace = { version = "0.18" }
 noisy_bevy = "0.8.0"
 delaunator = "1.0.2"

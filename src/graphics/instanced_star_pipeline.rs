@@ -89,13 +89,13 @@ fn queue_custom(
     render_mesh_instances: Res<RenderMeshInstances>,
     material_meshes: Query<(Entity, &MainEntity), With<StarInstanceMaterialData>>,
     mut transparent_render_phases: ResMut<ViewSortedRenderPhases<Transparent3d>>,
-    mut views: Query<(Entity, &ExtractedView, &Msaa)>,
+    mut views: Query<(&ExtractedView, &Msaa)>,
 ) {
     let draw_star = transparent_3d_draw_functions.read().id::<DrawStar>();
 
-    for (view_entity, view, msaa) in &mut views {
+    for (view, msaa) in &mut views {
         let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
-        let Some(transparent_phase) = transparent_render_phases.get_mut(&view_entity) else {
+        let Some(transparent_phase) = transparent_render_phases.get_mut(&view.retained_view_entity) else {
             continue;
         };
 
@@ -123,7 +123,8 @@ fn queue_custom(
                 draw_function: draw_star,
                 distance: rangefinder.distance_translation(&mesh_instance.translation),
                 batch_range: 0..1,
-                extra_index: PhaseItemExtraIndex::NONE,
+                extra_index: PhaseItemExtraIndex::None,
+                indexed : false,
             });
         }
     }
@@ -259,7 +260,7 @@ fn prepare_star_uniform_bind_groups(
     mut uniforms_data: ResMut<StarUniformsData>,
     cam_query: Query<&crate::camera::CameraMain>,
 ) {
-    let cam = cam_query.get_single().expect("couldn't find camera!");
+    let cam = cam_query.single().expect("couldn't find camera!");
 
     uniforms_data.uniform_buffer.set(StarInstancingUniforms {
         system_transition_factor: cam.adjusted_mode_transition(),

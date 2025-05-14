@@ -5,7 +5,7 @@ use bevy::prelude::*;
 pub struct SelectionPlugin;
 use std::collections::HashSet;
 
-use bevy::picking::{backend::prelude::*, focus::HoverMap, prelude::*};
+use bevy::picking::{backend::prelude::*, hover::HoverMap, prelude::*};
 
 impl Plugin for SelectionPlugin {
     fn build(&self, app: &mut App) {
@@ -27,7 +27,7 @@ impl Plugin for SelectionPlugin {
                 update_selected_empire,
             )
                 .chain()
-                .in_set(PickSet::PostFocus),
+                .in_set(PickSet::PostHover),
         );
     }
 }
@@ -275,13 +275,13 @@ pub fn update_selected_empire(
 // see https://github.com/aevyrie/bevy_mod_picking/blob/main/crates/bevy_picking_selection/src/lib.rs
 fn update_selection(
     mut selection: ResMut<Selection>,
-    mut pointer_down: EventReader<Pointer<Down>>,
+    mut pointer_down: EventReader<Pointer<Pressed>>,
     galaxy_selectable_query: Query<&GalaxySelectable>,
     system_selectable_query: Query<&SystemSelectable>,
     selection_proxy_query: Query<&SelectionProxy>,
     star_query: Query<&Star>,
     camera_settings: Res<CameraSettings>,
-    frame_count: Res<bevy::core::FrameCount>,
+    frame_count: Res<bevy::diagnostic::FrameCount>,
 ) {
     let prev_selection = selection.clone();
     let mut pointer_down_list = HashSet::new();

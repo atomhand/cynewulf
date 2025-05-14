@@ -117,7 +117,7 @@ fn setup_widget(mut commands: Commands, mut materials: ResMut<Assets<StarIconMat
                                 height: Val::Px(32.0),
                                 ..default()
                             },
-                            PickingBehavior {
+                            Pickable {
                                 should_block_lower: false,
                                 is_hoverable: false,
                             },
@@ -133,7 +133,7 @@ fn setup_widget(mut commands: Commands, mut materials: ResMut<Assets<StarIconMat
                                 ..default()
                             },
                             BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.5)),
-                            PickingBehavior {
+                            Pickable {
                                 should_block_lower: false,
                                 is_hoverable: false,
                             },
@@ -146,7 +146,7 @@ fn setup_widget(mut commands: Commands, mut materials: ResMut<Assets<StarIconMat
                                 ..default()
                             },
                             BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.5)),
-                            PickingBehavior {
+                            Pickable {
                                 should_block_lower: false,
                                 is_hoverable: false,
                             },

@@ -36,6 +36,8 @@ pub use planet::planet::Planet;
 pub mod empire;
 pub use empire::Empire;
 
+mod galaxy_density;
+
 pub struct GalaxySetupPlugin;
 
 impl Plugin for GalaxySetupPlugin {

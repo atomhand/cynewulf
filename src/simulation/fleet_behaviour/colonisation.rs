@@ -121,7 +121,7 @@ pub struct ColonisePlanetEvent {
 }
 
 pub fn process_colonise_events(
-    mut planet_query: Query<(&Planet, &Parent, Option<&mut Colony>)>,
+    mut planet_query: Query<(&Planet, &ChildOf, Option<&mut Colony>)>,
     mut fleet_query: Query<(&Fleet, &mut FleetColonyCrew, &mut Navigator)>,
     mut star_query: Query<&mut StarClaim, With<Star>>,
     mut ev_colonise: EventReader<ColonisePlanetEvent>,

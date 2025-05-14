@@ -65,7 +65,7 @@ impl GalaxyVolumeMaterial {
     pub fn new(radius: f32) -> Self {
         Self {
             radius,
-            alpha_mode: AlphaMode::Blend,
+            alpha_mode: AlphaMode::Add,
         }
     }
 }

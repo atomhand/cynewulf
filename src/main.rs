@@ -30,7 +30,7 @@ fn main() {
                 }),
                 ..default()
             }),
-            bevy_framepace::FramepacePlugin,
+            //bevy_framepace::FramepacePlugin,
             simulation::SimulationPlugin,
             galaxy::GalaxySetupPlugin,
             graphics::GraphicsPlugin,
