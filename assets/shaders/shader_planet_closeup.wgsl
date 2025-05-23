@@ -25,8 +25,8 @@ struct MyVertexOutput {
 fn vertex(vertex: Vertex) -> MyVertexOutput {
     let model = get_world_from_local(vertex.instance_index);
 
-    let camera_right = normalize(vec3<f32>(view.clip_from_world.x.x, view.clip_from_world.y.x, view.clip_from_world.z.x));
-    let camera_up = normalize(vec3<f32>(view.clip_from_world.x.y, view.clip_from_world.y.y, view.clip_from_world.z.y));
+    let camera_right = normalize(vec3<f32>(view.clip_from_world[0].x, view.clip_from_world[1].x, view.clip_from_world[2].x));    
+    let camera_up = normalize(vec3<f32>(view.clip_from_world[0].y, view.clip_from_world[1].y, view.clip_from_world[2].y));
 
     let world_space = (camera_right * vertex.position.x + camera_up * vertex.position.y)  * (planet_radius+0.0093*0.4);
     let position = view.clip_from_world * model * vec4<f32>(world_space, 1.0);
