@@ -31,6 +31,7 @@ struct StarFormat {
     empire_halo: Vec4,
     system_halo: Vec4,
     star_pop_rank: f32,
+    system_view_radius: f32,
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
@@ -41,6 +42,8 @@ struct TerritoryOverlaysMaterial {
     #[storage(2, read_only)]
     //edge_data_buffer : Vec<LaneFormat>,
     edge_data_buffer: Handle<ShaderStorageBuffer>,
+    #[uniform(3)]
+    pub system_transition_factor: f32,
     alpha_mode: AlphaMode,
 }
 
@@ -120,7 +123,9 @@ fn update_overlays(
     mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
     selection: Res<crate::galaxy::Selection>,
     hypernet: Res<Hypernet>,
+    cam_query: Query<&crate::camera::CameraMain>,
 ) {
+    let cam = cam_query.single().expect("couldn't find camera!");
     let mut any_change = false;
     if selection.is_changed() {
         any_change = true;
@@ -189,11 +194,12 @@ fn update_overlays(
         }
     }
 
+    // Mutably dereferencing the material is necessary to make the engine notice that its buffers have been updated
+    let Some(mat) = mats.get_mut(&overlays_data.material_handle) else {
+        return;
+    };
+    mat.system_transition_factor = cam.adjusted_mode_transition();
     if any_change {
-        // Mutably dereferencing the material is necessary to make the engine notice that its buffers have been updated
-        let Some(mat) = mats.get_mut(&overlays_data.material_handle) else {
-            return;
-        };
         if let Some(star_buffer) = buffers.get_mut(&mat.star_data_buffer) {
             star_buffer.set_data(overlays_data.star_data.as_slice());
         }
@@ -249,17 +255,21 @@ fn generate_overlays_mesh(
         }
 
         in_ids.push(id);
-        if let Some(_star) = star {
+        let mut system_view_radius: Option<f32> = None;
+
+        if let Some(star) = star {
             commands.entity(entity).insert(StarGfxTag {
                 id: id as usize,
                 nearest,
             });
+            system_view_radius = Some(star.system_radius_actual());
         }
 
         // distance to nearest neighbour stored in A channel
 
         star_data[id as usize] = StarFormat {
             pos: Vec4::new(p.x, p.z, 0.0, nearest),
+            system_view_radius: system_view_radius.unwrap_or(0.0),
             ..default()
         };
     }
@@ -350,6 +360,7 @@ fn generate_overlays_mesh(
     let material = materials.add(TerritoryOverlaysMaterial {
         star_data_buffer: buffers.add(ShaderStorageBuffer::from(star_data.clone())),
         edge_data_buffer: buffers.add(ShaderStorageBuffer::from(edge_data.clone())),
+        system_transition_factor: 0.0,
         alpha_mode: AlphaMode::Blend,
     });
 

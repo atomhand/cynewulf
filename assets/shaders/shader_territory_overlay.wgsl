@@ -7,6 +7,7 @@ struct StarFormat {
     empire_halo : vec4<f32>,
     system_halo : vec4<f32>,
     pop_rank : f32,
+    system_view_radius : f32
 }
 struct LaneFormat {
     enabled : u32,
@@ -14,6 +15,7 @@ struct LaneFormat {
 }
 @group(2) @binding(1) var<storage> star_data_array: array<StarFormat>;
 @group(2) @binding(2) var<storage> lane_data_array: array<LaneFormat>;
+@group(2) @binding(3)  var<uniform> system_transition_factor : f32;
 
 struct Vertex {
     @builtin(instance_index) instance_index: u32,
@@ -101,9 +103,9 @@ fn sd_circle(p : vec2<f32>, center : vec2<f32>, r : f32) -> f32 {
 }
 // END IQUILEZ
 
-fn star_adjusted_distance_factor(a : vec4<f32>, b : vec4<f32>, c : vec4<f32>) -> f32 {
-    let pv = a.xy + normalize(c.xy - a.xy) * a.w;
-    return line_segment_distance(a.xy,b.xy, pv);
+fn star_adjusted_distance_factor(a : StarFormat, b : vec4<f32>, c : vec4<f32>) -> f32 {
+    let pv = a.pos.xy + normalize(c.xy - a.pos.xy) * mix(a.pos.w/2.0,a.system_view_radius,system_transition_factor);
+    return line_segment_distance(a.pos.xy,b.xy, pv);
 }
 
 fn line_segment_distance(v : vec2<f32>, w : vec2<f32>, p : vec2<f32>) -> f32 {
@@ -235,13 +237,15 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
     let b = star_data_array[input.star_id.y];
     let c = star_data_array[input.star_id.z];
 
-    let circle_distance = vec3<f32>(
-        sd_circle(p, a.pos.xy, a.pos.w / 2.0),
-        sd_circle(p, b.pos.xy, b.pos.w / 2.0),
-        sd_circle(p, c.pos.xy, c.pos.w / 2.0)
+    var circle_distance = vec3<f32>(
+        sd_circle(p, a.pos.xy, mix(a.pos.w / 2.0,a.system_view_radius, system_transition_factor)),
+        sd_circle(p, b.pos.xy,  mix(b.pos.w / 2.0,b.system_view_radius, system_transition_factor)),
+        sd_circle(p, c.pos.xy,  mix(c.pos.w / 2.0,c.system_view_radius, system_transition_factor))
     );
 
-    var distance = circle_distance + vec3(1.0);
+
+    let scale = mix(1.0,0.05,system_transition_factor);
+    var distance = circle_distance + vec3(1.0)*(1.0-system_transition_factor);
     var halo_distance = distance;
 
     var hyperlane_dist = 10000.f;
@@ -293,24 +297,18 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
         }
     }
 
-    let contraction_fac : f32 = 3.0;
-    let smin_fac : f32 = 1.0;
+    let contraction_fac : f32 = 3.0 * scale;
+    let smin_fac : f32 = 1.0 * scale;
     
     if b.col.a != 0.0 && all(b.col==c.col)
     {
         distance.y = min(distance.z,distance.y);
         distance.z = 1000.0;
         if input.edge_id.y < 99999 {
-            let bf = star_adjusted_distance_factor(b.pos,c.pos,a.pos) / 2.0;
-            let cf = star_adjusted_distance_factor(c.pos,b.pos,a.pos) / 2.0;
+            let bf = star_adjusted_distance_factor(b,c.pos,a.pos);
+            let cf = star_adjusted_distance_factor(c,b.pos,a.pos);
             let f = min(bf,cf) - contraction_fac;
-
-            // fade out when point is at edge AC or AB
-            // ie. when bary.y or bary.z == 0.0
-
-            let fadeout = smoothstep(0.9,1.0, 1.0 - min(input.barycentric.y,input.barycentric.z));
             let d = sd_uneven_capsule(p, b.pos.xy, c.pos.xy, f, f);
-            let c = min(circle_distance.z,circle_distance.y);
             distance.y = smin(distance.y, d, smin_fac);
         }
 
@@ -324,16 +322,10 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
         distance.x = min(distance.x,distance.y);
         distance.y = 1000.0;
         if input.edge_id.x < 99999 {
-            let af = star_adjusted_distance_factor(a.pos,b.pos,c.pos) / 2.0;
-            let bf = star_adjusted_distance_factor(b.pos,a.pos,c.pos) / 2.0;
+            let af = star_adjusted_distance_factor(a,b.pos,c.pos);
+            let bf = star_adjusted_distance_factor(b,a.pos,c.pos);
             let f = min(af,bf) - contraction_fac;
-
-            // fade out when point is at edge BC or AC
-            // ie. when bary.x or bary.y == 0.0
-
-            let fadeout = smoothstep(0.9,1.0, 1.0 - min(input.barycentric.y,input.barycentric.x));
             let d = sd_uneven_capsule(p, a.pos.xy, b.pos.xy, f, f);
-            let c = min(circle_distance.x,circle_distance.y);
             distance.x = smin(distance.x, d, smin_fac);
         }
 
@@ -347,15 +339,10 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
         distance.x = min(distance.x,distance.z);
         distance.z = 1000.0;
         if input.edge_id.z < 99999 {
-            let af = star_adjusted_distance_factor(a.pos,c.pos,b.pos) / 2.0;
-            let cf = star_adjusted_distance_factor(c.pos,a.pos,b.pos) / 2.0;
+            let af = star_adjusted_distance_factor(a,c.pos,b.pos);
+            let cf = star_adjusted_distance_factor(c,a.pos,b.pos);
             let f = min(af,cf) - contraction_fac;
-
-            // fade out when point is at edge AB or BC
-            // ie. when bary.z or bary.x == 0.0
-            let fadeout = smoothstep(0.9,1.0, 1.0 - min(input.barycentric.z,input.barycentric.x));
             let d = sd_uneven_capsule(p, a.pos.xy, c.pos.xy, f, f);
-            let c = min(circle_distance.x,circle_distance.z);
             distance.x = smin(distance.x, d, smin_fac);
         }
 
@@ -364,15 +351,16 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
             halo_distance.z = distance.z;
         }
     }
-
     // adjust this parameter to dilate or contract the border shape
-    distance += vec3(4.0);
+    distance += vec3(4.0)*(1.0-system_transition_factor);
 
-    halo_distance += vec3(4.0);
+    halo_distance += vec3(4.0)*(1.0-system_transition_factor);
+
+
     // Get a cheap antialiasing by softly fading out any edges over a short distance scaled with the pixel derivatives
     let antialias_dist = length(fwidth(input.world_pos.xz));
 
-    let territory_falloff_band = 3.0;
+    let territory_falloff_band = 3.0*scale;
     let edge_inner = vec3(1.0) - 0.9 * smoothstep(vec3(0.0),vec3(territory_falloff_band), -distance);
     let edge_outer = vec3(1.0) - smoothstep(vec3(0.0), vec3(antialias_dist), distance);
 
@@ -382,10 +370,10 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
 
     // selection halo
     //let system_halo_weight = halo_weight(halo_distance, antialias_dist, 1.0, 0.6) + halo_weight(halo_distance, antialias_dist, 2.5 + antialias_dist, 0.6);
-    let system_halo_weight = gradient_halo(halo_distance, antialias_dist, antialias_dist+0.5, 4.0);
+    let system_halo_weight = gradient_halo(halo_distance, antialias_dist, antialias_dist+0.5*scale, 4.0*scale);
     let system_halo = a.system_halo * system_halo_weight.x + b.system_halo * system_halo_weight.y + c.system_halo * system_halo_weight.z;
 
-    let empire_halo_weight = gradient_halo(distance, antialias_dist, antialias_dist+0.5, 4.0);// + halo_weight(distance, antialias_dist, 2.5 + antialias_dist, 0.5);
+    let empire_halo_weight = gradient_halo(distance, antialias_dist, antialias_dist+0.5*scale, 4.0*scale);// + halo_weight(distance, antialias_dist, 2.5 + antialias_dist, 0.5);
     let empire_halo : vec4<f32> = a.empire_halo * empire_halo_weight.x + b.empire_halo * empire_halo_weight.y + c.empire_halo * empire_halo_weight.z;
 
     // rank halo
@@ -396,7 +384,7 @@ fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
         nearest = b;
     }
 
-    let rank_halo_weight = banded_rank_halo(p - nearest.pos.xy, antialias_dist, 5.0, 0.8, nearest.pop_rank);
+    let rank_halo_weight = banded_rank_halo(p - nearest.pos.xy, antialias_dist, mix(5.0,nearest.system_view_radius,system_transition_factor), 0.8*scale, nearest.pop_rank);
     let rank_halo : vec4<f32> = nearest.col * rank_halo_weight;
 
     let hyperlane_col = vec4(lane.col,1.0);

@@ -95,7 +95,8 @@ fn queue_custom(
 
     for (view, msaa) in &mut views {
         let msaa_key = MeshPipelineKey::from_msaa_samples(msaa.samples());
-        let Some(transparent_phase) = transparent_render_phases.get_mut(&view.retained_view_entity) else {
+        let Some(transparent_phase) = transparent_render_phases.get_mut(&view.retained_view_entity)
+        else {
             continue;
         };
 
@@ -124,7 +125,7 @@ fn queue_custom(
                 distance: rangefinder.distance_translation(&mesh_instance.translation),
                 batch_range: 0..1,
                 extra_index: PhaseItemExtraIndex::None,
-                indexed : false,
+                indexed: false,
             });
         }
     }

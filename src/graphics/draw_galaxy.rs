@@ -124,6 +124,7 @@ fn star_gfx(
 }
 
 pub fn draw_system_overlays(stars: Query<&Star>, cam: Res<CameraSettings>, mut gizmos: Gizmos) {
+    /* 
     if cam.camera_mode == CameraMode::Star {
         if let Some(star_id) = cam.star {
             if let Ok(star) = stars.get(star_id) {
@@ -138,4 +139,5 @@ pub fn draw_system_overlays(stars: Query<&Star>, cam: Res<CameraSettings>, mut g
             }
         }
     }
+    */
 }
